@@ -1,0 +1,61 @@
+import prisma from "../prismaClient.js"
+
+
+
+export async function listarMarca(req, res) {
+  try {
+    const marca = await prisma.msmarca.findMany()
+    res.json(marca)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ erro: "Erro ao buscar marca" })
+  }
+}
+
+export async function alterarMarca(req, res) {
+  const{codmarca} = req.params;
+  const {...dados} = req.body;
+
+ if (!codmarca) {
+    return res.status(400).json({ erro: "O código do marca é obrigatório" });
+  }
+  // Remover campos que não devem ser atualizados
+  const camposProibidos = ["data_cadastro", "ativo"];
+  camposProibidos.forEach(campo => delete dados[campo]);
+  try {
+    const marcaAtualizado = await prisma.msMarca.update({
+      where: { codmarca: Number(codmarca) },
+      data: dados,
+      
+    })
+    res.json(marcaAtualizado)
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao alterar marca" })
+  }
+}
+export async function alterarStatusMarca(req, res) {
+  const { codmarca } = req.params;
+  const { ativo } = req.body; // espera { "ativo": "S" } ou { "ativo": "N" }
+
+  if (!codmarca) {
+    return res.status(400).json({ erro: "O código da marca é obrigatório" });
+  }
+
+  if (ativo !== "S" && ativo !== "N") {
+    return res.status(400).json({ erro: "O campo 'ativo' deve ser 'S' ou 'N'" });
+  }
+
+  try {
+    const marcaAtualizado = await prisma.msmarca.update({
+      where: { codmarca: Number(codmarca) },
+      data: { ativo }, // atualiza apenas o campo ativo
+    });
+    res.json(marcaAtualizado);
+  } catch (error) {
+    if (error.code === "P2025") {
+      return res.status(404).json({ erro: "marca não encontrado" });
+    }
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao alterar status do marca" });
+  }
+}

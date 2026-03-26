@@ -1,0 +1,84 @@
+import prisma from "../prismaClient.js"
+
+
+
+export async function listarProdutos(req, res) {
+  try {
+    const produtos = await prisma.msproduto.findMany()
+    res.json(produtos)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ erro: "Erro ao buscar produtos" })
+  }
+}
+
+export async function criarProdutos(req, res) {
+  try {
+    const produto = await prisma.msproduto.create({
+      data: {
+        descricao: req.body.descricao,
+        marca: req.body.marca || "",
+        codcategoria: Number(req.body.codcategoria),
+        codigo_barras: req.body.codigo_barras || null,
+        volume_ml: req.body.volume_ml || null,
+        preco_normal: Number(req.body.preco_normal || 0),
+        preco_promocao: Number(req.body.preco_promocao || 0),
+        ativo: req.body.ativo || "S",
+        data_cadastro: new Date(),
+        resumo: req.body.resumo || ""
+      }
+    })
+    res.json(produto)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ erro: "Erro ao criar produtos" })
+  }
+}
+
+export async function alterarProdutos(req, res) {
+  const { codproduto } = req.params;
+  const { ...dados } = req.body;
+
+  if (!codproduto) {
+    return res.status(400).json({ erro: "O código do produto é obrigatório" });
+  }
+  // Remover campos que não devem ser atualizados
+  const camposProibidos = ["data_cadastro", "ativo"];
+  camposProibidos.forEach(campo => delete dados[campo]);
+  try {
+    const produtoAtualizado = await prisma.msproduto.update({
+      where: { codproduto: Number(codproduto) },
+      data: dados,
+
+    })
+    res.json(produtoAtualizado)
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao alterar produto" })
+  }
+}
+export async function alterarStatusProduto(req, res) {
+  const { codproduto } = req.params;
+  const { ativo } = req.body; // espera { "ativo": "S" } ou { "ativo": "N" }
+
+  if (!codproduto) {
+    return res.status(400).json({ erro: "O código do produto é obrigatório" });
+  }
+
+  if (ativo !== "S" && ativo !== "N") {
+    return res.status(400).json({ erro: "O campo 'ativo' deve ser 'S' ou 'N'" });
+  }
+
+  try {
+    const produtoAtualizado = await prisma.msproduto.update({
+      where: { codproduto: Number(codproduto) },
+      data: { ativo }, // atualiza apenas o campo ativo
+    });
+    res.json(produtoAtualizado);
+  } catch (error) {
+    if (error.code === "P2025") {
+      return res.status(404).json({ erro: "Produto não encontrado" });
+    }
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao alterar status do produto" });
+  }
+}
