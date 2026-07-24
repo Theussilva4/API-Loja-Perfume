@@ -23,6 +23,8 @@ export async function criarProdutos(req, res) {
         volume_ml: req.body.volume_ml || null,
         preco_normal: Number(req.body.preco_normal || 0),
         preco_promocao: Number(req.body.preco_promocao || 0),
+        custo: req.body.custo ? Number(req.body.custo) : 0,
+        estoque_minimo: req.body.estoque_minimo ? Number(req.body.estoque_minimo) : 0,
         ativo: req.body.ativo || "S",
         data_cadastro: new Date(),
         resumo: req.body.resumo || ""

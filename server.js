@@ -1,6 +1,8 @@
 import "dotenv/config"
 import express from "express"
 import cors from "cors"
+import path from "path"
+import { fileURLToPath } from "url"
 
 import produtosRoutes from "./routes/produtos.js"
 import categoriaRoutes from "./routes/categoria.js"
@@ -9,18 +11,47 @@ import filialRoutes from "./routes/filial.js"
 import marcaRoutes from "./routes/marca.js"
 import clienteRoutes from "./routes/cliente.js"
 import vendedorRoutes from "./routes/vendedor.js"
+import usuarioRoutes from "./routes/usuario.js"
+import loginRoutes from "./routes/login.js"
+import pedidoRoutes from "./routes/pedido.js"
+import planopagamentoRoutes from "./routes/planopagamento.js"
+
+import fornecedorRoutes from "./routes/fornecedor.js"
+import compraRoutes from "./routes/compra.js"
+import dashboardRoutes from "./routes/dashboard.js"
+import precificacaoRoutes from "./routes/precificacao.js"
 
 const app = express()
 app.use(cors())
 app.use(express.json())
-app.use("/produtos", produtosRoutes)
-app.use("/categorias", categoriaRoutes)
-app.use("/estoque", estoqueRoutes)
-app.use("/filial", filialRoutes)
-app.use("/marcas", marcaRoutes)
-app.use("/cliente", clienteRoutes)
-app.use("/vendedor", vendedorRoutes)
 
+// Rotas da API
+app.use("/api/produtos", produtosRoutes)
+app.use("/api/categorias", categoriaRoutes)
+app.use("/api/estoque", estoqueRoutes)
+app.use("/api/filial", filialRoutes)
+app.use("/api/marcas", marcaRoutes)
+app.use("/api/cliente", clienteRoutes)
+app.use("/api/vendedor", vendedorRoutes)
+app.use("/api/usuario", usuarioRoutes)
+app.use("/api/login", loginRoutes)
+app.use("/api/pedidos", pedidoRoutes)
+app.use("/api/planopagamento", planopagamentoRoutes)
+app.use("/api/fornecedores", fornecedorRoutes)
+app.use("/api/compras", compraRoutes)
+app.use("/api/dashboard", dashboardRoutes)
+app.use("/api/comercial", precificacaoRoutes)
+
+
+
+
+// Servir o frontend buildado
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+app.use(express.static(path.join(__dirname, '../perfume-store-dashboard/dist')))
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../perfume-store-dashboard/dist/index.html'))
+})
 
 app.listen(3001,"0.0.0.0", () => {
   console.log("API rodando em http://192.168.2.167:3001")

@@ -1,0 +1,162 @@
+import * as precificacaoService from "../services/precificacaoService.js";
+import prisma from "../prismaClient.js";
+
+// --- CONFIGURAÇÕES ---
+
+export async function getConfig(req, res) {
+  try {
+    const config = await precificacaoService.getConfiguracao();
+    res.json(config);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao buscar configurações comerciais" });
+  }
+}
+
+export async function updateConfig(req, res) {
+  try {
+    const config = await precificacaoService.updateConfiguracao(req.body);
+    res.json(config);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao atualizar configurações comerciais" });
+  }
+}
+
+// --- TABELA DE PREÇOS ---
+
+export async function listarTabelaPrecos(req, res) {
+  try {
+    const produtos = await prisma.msproduto.findMany({
+      where: { ativo: "S" },
+      select: {
+        codproduto: true,
+        descricao: true,
+        marca: true,
+        codcategoria: true,
+      }
+    });
+
+    // Anexar o preço calculado a cada produto
+    const resultado = await Promise.all(produtos.map(async (p) => {
+      const calculo = await precificacaoService.calculatePrice(p.codproduto);
+      return {
+        ...p,
+        precificacao: calculo
+      };
+    }));
+
+    res.json(resultado);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao buscar tabela de preços" });
+  }
+}
+
+export async function getHistoricoPrecos(req, res) {
+  const { codproduto } = req.params;
+  try {
+    const historico = await prisma.mstabela_preco.findMany({
+      where: { codproduto: Number(codproduto) },
+      orderBy: { created_at: "desc" }
+    });
+    res.json(historico);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao buscar histórico" });
+  }
+}
+
+export async function definirPrecoBase(req, res) {
+  const { codproduto } = req.params;
+  const { preco_custo, preco_venda, desconto_maximo, codusur } = req.body;
+
+  try {
+    const novoPreco = await precificacaoService.setPrecoBase(codproduto, preco_custo, preco_venda, codusur, desconto_maximo);
+    res.json(novoPreco);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao definir preço" });
+  }
+}
+
+// --- MOTOR ---
+
+export async function simularPreco(req, res) {
+  const { codproduto } = req.params;
+  try {
+    const calculo = await precificacaoService.calculatePrice(codproduto);
+    res.json(calculo);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao simular preço" });
+  }
+}
+
+// --- PROMOÇÕES ---
+
+export async function listarPromocoes(req, res) {
+  try {
+    const promocoes = await prisma.mspromocao.findMany({
+      include: {
+        itens: {
+          include: { msproduto: true }
+        }
+      },
+      orderBy: { data_inicio: "desc" }
+    });
+    res.json(promocoes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao buscar promoções" });
+  }
+}
+
+export async function criarPromocao(req, res) {
+  const { nome, tipo_geral, valor_geral, data_inicio, data_fim, prioridade, itens } = req.body;
+
+  try {
+    const promocao = await prisma.mspromocao.create({
+      data: {
+        nome,
+        tipo_geral,
+        valor_geral,
+        data_inicio: new Date(data_inicio),
+        data_fim: new Date(data_fim),
+        prioridade: prioridade ? Number(prioridade) : 1,
+        itens: {
+          create: itens.map((item) => ({
+            codproduto: Number(item.codproduto),
+            tipo_opcional: item.tipo_opcional || null,
+            valor_opcional: item.valor_opcional ? Number(item.valor_opcional) : null
+          }))
+        }
+      },
+      include: {
+        itens: true
+      }
+    });
+    res.json(promocao);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao criar promoção" });
+  }
+}
+
+export async function deletarPromocao(req, res) {
+  const { codpromocao } = req.params;
+  try {
+    // Apaga itens primeiro
+    await prisma.mspromocao_item.deleteMany({
+      where: { codpromocao: Number(codpromocao) }
+    });
+    // Apaga promoção
+    await prisma.mspromocao.delete({
+      where: { codpromocao: Number(codpromocao) }
+    });
+    res.json({ sucesso: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao deletar promoção" });
+  }
+}

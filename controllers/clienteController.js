@@ -23,6 +23,8 @@ export async function criarClientes(req, res) {
         endereco: req.body.endereco || null,
         numero: req.body.numero || 0,
         bairro: req.body.bairro || "",
+        whatsapp: req.body.whatsapp || null,
+        observacoes: req.body.observacoes || null,
         ativo: req.body.ativo || "S",
         data_cadastro: new Date(),
         cidade: req.body.cidade || "",
