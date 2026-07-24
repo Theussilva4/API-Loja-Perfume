@@ -53,6 +53,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../perfume-store-dashboard/dist/index.html'))
 })
 
-app.listen(3001,"0.0.0.0", () => {
-  console.log("API rodando em http://192.168.2.167:3001")
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`API rodando na porta ${PORT}`)
 })
