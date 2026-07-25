@@ -12,6 +12,26 @@ export async function listarMarca(req, res) {
   }
 }
 
+export async function criarMarca(req, res) {
+  const { marca, ativo } = req.body;
+  if (!marca) {
+    return res.status(400).json({ erro: "O nome da marca é obrigatório" });
+  }
+
+  try {
+    const novaMarca = await prisma.msmarca.create({
+      data: {
+        marca,
+        ativo: ativo || "S"
+      }
+    });
+    res.status(201).json(novaMarca);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao criar marca" });
+  }
+}
+
 export async function alterarMarca(req, res) {
   const{codmarca} = req.params;
   const {...dados} = req.body;
@@ -23,7 +43,7 @@ export async function alterarMarca(req, res) {
   const camposProibidos = ["data_cadastro", "ativo"];
   camposProibidos.forEach(campo => delete dados[campo]);
   try {
-    const marcaAtualizado = await prisma.msMarca.update({
+    const marcaAtualizado = await prisma.msmarca.update({
       where: { codmarca: Number(codmarca) },
       data: dados,
       
