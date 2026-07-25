@@ -12,6 +12,26 @@ export async function listarcategorias(req, res) {
   }
 }
 
+export async function criarcategorias(req, res) {
+  const { categoria, ativo } = req.body;
+  if (!categoria) {
+    return res.status(400).json({ erro: "O nome da categoria é obrigatório" });
+  }
+
+  try {
+    const novaCategoria = await prisma.mscategoria.create({
+      data: {
+        categoria,
+        ativo: ativo || "S"
+      }
+    });
+    res.status(201).json(novaCategoria);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao criar categoria" });
+  }
+}
+
 export async function alterarcategorias(req, res) {
   const{codcategoria} = req.params;
   const {...dados} = req.body;
