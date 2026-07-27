@@ -22,7 +22,17 @@ import dashboardRoutes from "./routes/dashboard.js"
 import precificacaoRoutes from "./routes/precificacao.js"
 
 const app = express()
-app.use(cors())
+
+app.use(cors({
+  origin: [
+    "http://localhost:8081",
+    "http://localhost:5173",
+    "https://deassisdev-site-matheus.bwb8as.easypanel.host"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"]
+}))
+
 app.use(express.json())
 
 // Rotas da API
