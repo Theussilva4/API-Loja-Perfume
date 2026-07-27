@@ -106,8 +106,9 @@ export async function calculatePrice(codproduto) {
     const itemPromo = promoVencedora.itens[0];
 
     // Verifica se há regra específica para este item
-    const tipo = itemPromo.tipo_opcional || promoVencedora.tipo_geral;
-    const valor = Number(itemPromo.valor_opcional || promoVencedora.valor_geral);
+    const hasRegraItem = !!itemPromo.tipo_opcional && itemPromo.valor_opcional !== null && itemPromo.valor_opcional !== undefined;
+    const tipo = hasRegraItem ? itemPromo.tipo_opcional : promoVencedora.tipo_geral;
+    const valor = Number(hasRegraItem ? itemPromo.valor_opcional : promoVencedora.valor_geral);
 
     promocaoAplicada = promoVencedora.nome;
 

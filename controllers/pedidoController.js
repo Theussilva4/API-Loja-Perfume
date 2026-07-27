@@ -15,7 +15,8 @@ export async function listarPedidos(req, res) {
       orderBy: { numpedido: "desc" },
       include: {
         mscliente: { select: { nome: true } },
-        mspedido_item: true
+        mspedido_item: true,
+        msusuario_mspedido_codusur_cancelouTomsusuario: { select: { nome: true } }
       }
     });
     res.json(pedidos);
@@ -127,7 +128,7 @@ export async function criarPedido(req, res) {
 export async function alterarStatus(req, res) {
   try {
     const { id } = req.params; // numpedido
-    const { status } = req.body;
+    const { status, motivo_cancelamento, codusur_cancelou } = req.body;
 
     const pedidoAnterior = await prisma.mspedido.findUnique({
       where: { numpedido: Number(id) },
@@ -135,6 +136,69 @@ export async function alterarStatus(req, res) {
     });
 
     if (!pedidoAnterior) return res.status(404).json({ error: "Pedido não encontrado" });
+
+    // Se estiver mudando para CANCELADO
+    if (status === "CANCELADO") {
+      if (pedidoAnterior.status === "CANCELADO") {
+        return res.status(400).json({ error: "Este pedido já está cancelado." });
+      }
+
+      if (!motivo_cancelamento || motivo_cancelamento.trim().length < 15) {
+        return res.status(400).json({ error: "O motivo do cancelamento deve ter pelo menos 15 caracteres." });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Se o pedido estava FINALIZADO, precisamos devolver o estoque
+        if (pedidoAnterior.status === "FINALIZADO") {
+          for (const item of pedidoAnterior.mspedido_item) {
+            const filial = pedidoAnterior.codfilial || 1;
+            // Cria movimento de devolução de estoque
+            await tx.msmov_estoque.create({
+              data: {
+                codproduto: item.codproduto,
+                codfilial: filial,
+                tipo: "ENTRADA",
+                origem: "CANCELAMENTO_VENDA",
+                quantidade: item.quantidade,
+                origem_id: pedidoAnterior.numpedido
+              }
+            });
+
+            // Incrementa (devolve) o estoque
+            await tx.msestoque.upsert({
+              where: {
+                codproduto_codfilial: {
+                  codproduto: item.codproduto,
+                  codfilial: filial
+                }
+              },
+              update: {
+                quantidade: { increment: item.quantidade },
+                atualizado_em: new Date()
+              },
+              create: {
+                codproduto: item.codproduto,
+                codfilial: filial,
+                quantidade: item.quantidade
+              }
+            });
+          }
+        }
+
+        // Atualiza o pedido para CANCELADO
+        await tx.mspedido.update({
+          where: { numpedido: Number(id) },
+          data: { 
+            status: "CANCELADO",
+            motivo_cancelamento,
+            data_cancelamento: new Date(),
+            codusur_cancelou: codusur_cancelou ? Number(codusur_cancelou) : null
+          }
+        });
+      });
+
+      return res.json({ mensagem: "Pedido cancelado com sucesso." });
+    }
 
     // Só permite baixar estoque se estiver mudando para FINALIZADO vindo de outro status
     if (status === "FINALIZADO" && pedidoAnterior.status !== "FINALIZADO") {

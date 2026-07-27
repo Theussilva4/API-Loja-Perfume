@@ -92,6 +92,7 @@ model msusuario {
   updated_at                                    DateTime?  @updatedAt @db.DateTime(0)
   mspedido_mspedido_codusur_criouTomsusuario    mspedido[] @relation("mspedido_codusur_criouTomsusuario")
   mspedido_mspedido_codusur_vendedorTomsusuario mspedido[] @relation("mspedido_codusur_vendedorTomsusuario")
+  mspedido_mspedido_codusur_cancelouTomsusuario mspedido[] @relation("mspedido_codusur_cancelouTomsusuario")
 }
 
 model msentrada_estoque {
@@ -184,15 +185,21 @@ model mspedido {
   updated_at                                     DateTime?       @updatedAt @db.DateTime(0)
   created_by                                     Int?
   updated_by                                     Int?
+  
+  motivo_cancelamento                            String?         @db.Text
+  data_cancelamento                              DateTime?       @db.DateTime(0)
+  codusur_cancelou                               Int?
 
   mscliente                                      mscliente       @relation(fields: [codcliente], references: [codcliente], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_1")
   msusuario_mspedido_codusur_criouTomsusuario    msusuario?      @relation("mspedido_codusur_criouTomsusuario", fields: [codusur_criou], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_2")
   msusuario_mspedido_codusur_vendedorTomsusuario msusuario?      @relation("mspedido_codusur_vendedorTomsusuario", fields: [codusur_vendedor], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_3")
+  msusuario_mspedido_codusur_cancelouTomsusuario msusuario?      @relation("mspedido_codusur_cancelouTomsusuario", fields: [codusur_cancelou], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_cancelou")
   mspedido_item                                  mspedido_item[]
 
   @@index([codcliente], map: "codcliente")
   @@index([codusur_criou], map: "codusur_criou")
   @@index([codusur_vendedor], map: "codusur_vendedor")
+  @@index([codusur_cancelou], map: "codusur_cancelou")
 }
 
 model mspedido_item {

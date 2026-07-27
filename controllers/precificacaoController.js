@@ -160,3 +160,42 @@ export async function deletarPromocao(req, res) {
     res.status(500).json({ erro: "Erro ao deletar promoção" });
   }
 }
+
+export async function atualizarPromocao(req, res) {
+  const { codpromocao } = req.params;
+  const { nome, tipo_geral, valor_geral, data_inicio, data_fim, prioridade, itens } = req.body;
+
+  try {
+    // Primeiro, apaga os itens antigos
+    await prisma.mspromocao_item.deleteMany({
+      where: { codpromocao: Number(codpromocao) }
+    });
+
+    // Atualiza a promoção e insere os novos itens
+    const promocao = await prisma.mspromocao.update({
+      where: { codpromocao: Number(codpromocao) },
+      data: {
+        nome,
+        tipo_geral,
+        valor_geral,
+        data_inicio: new Date(data_inicio),
+        data_fim: new Date(data_fim),
+        prioridade: prioridade ? Number(prioridade) : 1,
+        itens: {
+          create: itens.map((item) => ({
+            codproduto: Number(item.codproduto),
+            tipo_opcional: item.tipo_opcional || null,
+            valor_opcional: item.valor_opcional ? Number(item.valor_opcional) : null
+          }))
+        }
+      },
+      include: {
+        itens: true
+      }
+    });
+    res.json(promocao);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao atualizar promoção" });
+  }
+}
