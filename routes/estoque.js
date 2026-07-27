@@ -1,10 +1,12 @@
 import express from "express"
-import { listarEstoque,alterarEstoque } from "../controllers/estoqueController.js"
+import { listarEstoque, alterarEstoque, listarMovimentacoesSaida, registrarSaidaManual } from "../controllers/estoqueController.js"
 
 const router = express.Router()
 
 router.get("/", listarEstoque)
-router.patch("/:codproduto",alterarEstoque)
+router.get("/saidas", listarMovimentacoesSaida)
+router.post("/saidas", registrarSaidaManual)
+router.patch("/:codproduto", alterarEstoque)
 
 
 export default router
