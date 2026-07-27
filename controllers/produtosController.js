@@ -16,7 +16,7 @@ export async function criarProdutos(req, res) {
   try {
     const produto = await prisma.msproduto.create({
       data: {
-        descricao: req.body.descricao,
+        descricao: req.body.descricao ? req.body.descricao.toUpperCase() : "",
         marca: req.body.marca || "",
         codcategoria: Number(req.body.codcategoria),
         codigo_barras: req.body.codigo_barras || null,
@@ -47,6 +47,9 @@ export async function alterarProdutos(req, res) {
   // Remover campos que não devem ser atualizados
   const camposProibidos = ["data_cadastro", "ativo"];
   camposProibidos.forEach(campo => delete dados[campo]);
+  if (dados.descricao) {
+    dados.descricao = dados.descricao.toUpperCase();
+  }
   try {
     const produtoAtualizado = await prisma.msproduto.update({
       where: { codproduto: Number(codproduto) },
