@@ -1,10 +1,11 @@
 import express from "express";
-import {  listarPlanosPagamento,criarPlanoPagamento} from "../controllers/planoPagamentoController.js";
+import { listarPlanosPagamento, criarPlanoPagamento, atualizarPlanoPagamento, alterarStatusPlano } from "../controllers/planopagamentoController.js";
 
 const router = express.Router();
 
 router.get("/", listarPlanosPagamento);
-
-router.post("/",criarPlanoPagamento);
+router.post("/", criarPlanoPagamento);
+router.put("/:id", atualizarPlanoPagamento);
+router.patch("/:id/ativo", alterarStatusPlano);
 
 export default router;

@@ -231,12 +231,15 @@ model msvendedor {
 }
 
 model MSPLANOPAGAMENTO {
-  CODPLPAG  Int       @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
-  DESCRICAO String?   @db.VarChar(50)
-  ATIVO     String?   @default("S") @db.Char(1)
-  created_at DateTime? @default(now()) @db.DateTime(0)
-  updated_at DateTime? @updatedAt @db.DateTime(0)
+  CODPLPAG       Int       @id @default(autoincrement())
+  uuid           String?   @default(uuid()) @db.VarChar(36)
+  DESCRICAO      String?   @db.VarChar(50)
+  ATIVO          String?   @default("S") @db.Char(1)
+  tem_acrescimo  Boolean?  @default(false)
+  taxa_acrescimo Decimal?  @default(0) @db.Decimal(5, 2)
+  max_parcelas   Int?      @default(1)
+  created_at     DateTime? @default(now()) @db.DateTime(0)
+  updated_at     DateTime? @updatedAt @db.DateTime(0)
 }
 
 model msfornecedor {

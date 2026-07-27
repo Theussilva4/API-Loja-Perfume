@@ -3,9 +3,6 @@ import prisma from "../prismaClient.js";
 export async function listarPlanosPagamento(req, res) {
   try {
     const planos = await prisma.MSPLANOPAGAMENTO.findMany({
-      where: {
-        ATIVO: "S" // 👈 só ativos
-      },
       orderBy: {
         DESCRICAO: "asc"
       }
@@ -21,7 +18,7 @@ export async function listarPlanosPagamento(req, res) {
 
 export async function criarPlanoPagamento(req, res) {
   try {
-    const { descricao } = req.body;
+    const { descricao, tem_acrescimo, taxa_acrescimo, max_parcelas } = req.body;
 
     // validação
     if (!descricao) {
@@ -33,6 +30,9 @@ export async function criarPlanoPagamento(req, res) {
     const plano = await prisma.MSPLANOPAGAMENTO.create({
       data: {
         DESCRICAO: descricao,
+        tem_acrescimo: tem_acrescimo || false,
+        taxa_acrescimo: taxa_acrescimo || 0,
+        max_parcelas: max_parcelas || 1,
         ATIVO: "S"
       }
     });
@@ -44,5 +44,48 @@ export async function criarPlanoPagamento(req, res) {
     res.status(500).json({
       erro: "Erro ao criar plano de pagamento"
     });
+  }
+}
+
+export async function atualizarPlanoPagamento(req, res) {
+  try {
+    const { id } = req.params;
+    const { descricao, tem_acrescimo, taxa_acrescimo, max_parcelas } = req.body;
+
+    if (!descricao) {
+      return res.status(400).json({ erro: "Descrição é obrigatória" });
+    }
+
+    const plano = await prisma.MSPLANOPAGAMENTO.update({
+      where: { CODPLPAG: Number(id) },
+      data: {
+        DESCRICAO: descricao,
+        tem_acrescimo: tem_acrescimo || false,
+        taxa_acrescimo: taxa_acrescimo || 0,
+        max_parcelas: max_parcelas || 1,
+      }
+    });
+
+    res.json(plano);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao atualizar plano de pagamento" });
+  }
+}
+
+export async function alterarStatusPlano(req, res) {
+  try {
+    const { id } = req.params;
+    const { ativo } = req.body;
+
+    const plano = await prisma.MSPLANOPAGAMENTO.update({
+      where: { CODPLPAG: Number(id) },
+      data: { ATIVO: ativo ? "S" : "N" }
+    });
+
+    res.json(plano);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao alterar status do plano" });
   }
 }
