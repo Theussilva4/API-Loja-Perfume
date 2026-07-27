@@ -18,10 +18,10 @@ export async function criarClientes(req, res) {
       data: {
         nome: req.body.nome,
         cpf_cnpj: req.body.cpf_cnpj || "",
-        telefone: req.body.telefone,
+        telefone: req.body.telefone || "",
         email: req.body.email || null,
         endereco: req.body.endereco || null,
-        numero: req.body.numero || 0,
+        numero: req.body.numero ? String(req.body.numero) : "",
         bairro: req.body.bairro || "",
         whatsapp: req.body.whatsapp || null,
         observacoes: req.body.observacoes || null,
