@@ -321,6 +321,42 @@ export async function atualizarPedido(req, res) {
           mspedido_item: true
         }
       });
+      
+      // Baixa o estoque se o pedido for alterado de EM_ABERTO para FINALIZADO
+      if (pedidoAnterior.status !== "FINALIZADO" && (status === "FINALIZADO" || status === "FINALIZADA")) {
+        for (const item of itens) {
+          const filial = codfilial ? Number(codfilial) : 1;
+          await tx.msmov_estoque.create({
+            data: {
+              codproduto: Number(item.codproduto),
+              codfilial: filial,
+              tipo: "SAIDA",
+              origem: "VENDA",
+              quantidade: Number(item.quantidade),
+              origem_id: updated.numpedido
+            }
+          });
+
+          await tx.msestoque.upsert({
+            where: {
+              codproduto_codfilial: {
+                codproduto: Number(item.codproduto),
+                codfilial: filial
+              }
+            },
+            update: {
+              quantidade: { decrement: Number(item.quantidade) },
+              atualizado_em: new Date()
+            },
+            create: {
+              codproduto: Number(item.codproduto),
+              codfilial: filial,
+              quantidade: -Number(item.quantidade)
+            }
+          });
+        }
+      }
+
       return updated;
     });
 
