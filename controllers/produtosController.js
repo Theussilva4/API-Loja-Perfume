@@ -4,11 +4,37 @@ import prisma from "../prismaClient.js"
 
 export async function listarProdutos(req, res) {
   try {
-    const produtos = await prisma.msproduto.findMany()
-    res.json(produtos)
+    const produtos = await prisma.msproduto.findMany({
+      include: {
+        mstabela_preco: {
+          where: { ativo: 'S' },
+          orderBy: { codpreco: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    // Se o produto tiver um preço na tabela de preços, sobrepõe o preco_normal original
+    const produtosFormatados = produtos.map(p => {
+      let precoFinal = Number(p.preco_normal || 0);
+      
+      if (p.mstabela_preco && p.mstabela_preco.length > 0) {
+        precoFinal = Number(p.mstabela_preco[0].preco_venda);
+      }
+      
+      // Remove a propriedade mstabela_preco para não poluir o JSON
+      const { mstabela_preco, ...resto } = p;
+      
+      return {
+        ...resto,
+        preco_normal: precoFinal
+      };
+    });
+
+    res.json(produtosFormatados);
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ erro: "Erro ao buscar produtos" })
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao buscar produtos" });
   }
 }
 
