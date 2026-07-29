@@ -36,6 +36,7 @@ export async function criarPedido(req, res) {
       formaPagamento,
       parcelas,
       desconto,
+      observacoes,
       status, // EM_DIGITACAO ou FINALIZADO
       itens
     } = req.body;
@@ -64,6 +65,7 @@ export async function criarPedido(req, res) {
           desconto: desc,
           valor_total,
           status: finalStatus,
+          observacoes: observacoes || null,
           CODPLPAG: formaPagamento ? Number(formaPagamento) : null,
           parcelas: parcelas ? Number(parcelas) : 1,
           mspedido_item: {
@@ -271,6 +273,7 @@ export async function atualizarPedido(req, res) {
       formaPagamento,
       parcelas,
       desconto,
+      observacoes,
       itens
     } = req.body;
 
@@ -302,6 +305,7 @@ export async function atualizarPedido(req, res) {
           subtotal,
           desconto: desc,
           valor_total,
+          observacoes: observacoes || null,
           CODPLPAG: formaPagamento ? Number(formaPagamento) : null,
           parcelas: parcelas ? Number(parcelas) : 1,
           mspedido_item: {

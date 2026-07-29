@@ -185,6 +185,7 @@ model mspedido {
   updated_at                                     DateTime?       @updatedAt @db.DateTime(0)
   created_by                                     Int?
   updated_by                                     Int?
+  observacoes                                    String?         @db.Text
   
   motivo_cancelamento                            String?         @db.Text
   data_cancelamento                              DateTime?       @db.DateTime(0)
