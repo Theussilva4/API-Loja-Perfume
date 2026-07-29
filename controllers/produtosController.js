@@ -51,6 +51,7 @@ export async function criarProdutos(req, res) {
         preco_promocao: Number(req.body.preco_promocao || 0),
         custo: req.body.custo ? Number(req.body.custo) : 0,
         estoque_minimo: req.body.estoque_minimo ? Number(req.body.estoque_minimo) : 0,
+        codfornecedor: req.body.codfornecedor ? Number(req.body.codfornecedor) : null,
         ativo: req.body.ativo || "S",
         data_cadastro: new Date(),
         resumo: req.body.resumo || ""
