@@ -18,7 +18,7 @@ export async function listarPlanosPagamento(req, res) {
 
 export async function criarPlanoPagamento(req, res) {
   try {
-    const { descricao, tem_acrescimo, taxa_acrescimo, max_parcelas } = req.body;
+    const { descricao, tem_acrescimo, taxa_acrescimo, max_parcelas, valor_minimo_parcela } = req.body;
 
     // validação
     if (!descricao) {
@@ -33,6 +33,7 @@ export async function criarPlanoPagamento(req, res) {
         tem_acrescimo: tem_acrescimo || false,
         taxa_acrescimo: taxa_acrescimo || 0,
         max_parcelas: max_parcelas || 1,
+        valor_minimo_parcela: valor_minimo_parcela || 0,
         ATIVO: "S"
       }
     });
@@ -50,7 +51,7 @@ export async function criarPlanoPagamento(req, res) {
 export async function atualizarPlanoPagamento(req, res) {
   try {
     const { id } = req.params;
-    const { descricao, tem_acrescimo, taxa_acrescimo, max_parcelas } = req.body;
+    const { descricao, tem_acrescimo, taxa_acrescimo, max_parcelas, valor_minimo_parcela } = req.body;
 
     if (!descricao) {
       return res.status(400).json({ erro: "Descrição é obrigatória" });
@@ -63,6 +64,7 @@ export async function atualizarPlanoPagamento(req, res) {
         tem_acrescimo: tem_acrescimo || false,
         taxa_acrescimo: taxa_acrescimo || 0,
         max_parcelas: max_parcelas || 1,
+        valor_minimo_parcela: valor_minimo_parcela || 0,
       }
     });
 

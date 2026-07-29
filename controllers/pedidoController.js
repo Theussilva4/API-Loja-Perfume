@@ -34,6 +34,7 @@ export async function criarPedido(req, res) {
       codvendedor,
       codfilial,
       formaPagamento,
+      parcelas,
       desconto,
       status, // EM_DIGITACAO ou FINALIZADO
       itens
@@ -64,7 +65,7 @@ export async function criarPedido(req, res) {
           valor_total,
           status: finalStatus,
           CODPLPAG: formaPagamento ? Number(formaPagamento) : null,
-          parcelas: 1,
+          parcelas: parcelas ? Number(parcelas) : 1,
           mspedido_item: {
             create: itens.map(item => ({
               codproduto: Number(item.codproduto),
@@ -268,6 +269,7 @@ export async function atualizarPedido(req, res) {
       codfilial,
       status,
       formaPagamento,
+      parcelas,
       desconto,
       itens
     } = req.body;
@@ -301,7 +303,7 @@ export async function atualizarPedido(req, res) {
           desconto: desc,
           valor_total,
           CODPLPAG: formaPagamento ? Number(formaPagamento) : null,
-          parcelas: 1,
+          parcelas: parcelas ? Number(parcelas) : 1,
           mspedido_item: {
             create: itens.map(item => ({
               codproduto: Number(item.codproduto),
