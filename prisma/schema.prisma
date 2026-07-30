@@ -357,6 +357,22 @@ model msconfiguracao_empresa {
   dias_promocao_padrao Int?
   controlar_lotes   Boolean  @default(false)
   controlar_validade Boolean @default(false)
+  
+  // Configuracoes da Loja
+  nome_loja         String?  @db.VarChar(100)
+  telefone_loja     String?  @db.VarChar(20)
+  chave_pix         String?  @db.VarChar(255)
+  endereco_loja     String?  @db.VarChar(255)
+  instagram_loja    String?  @db.VarChar(100)
+  facebook_loja     String?  @db.VarChar(100)
+  
+  // Configuracoes Operacionais
+  cadastro_rapido_cliente Boolean @default(true)
+  venda_sem_estoque       Boolean @default(true)
+  exigir_fornecedor       Boolean @default(true)
+  venda_qualquer_fornecedor Boolean @default(true)
+  venda_sem_preco         Boolean @default(false)
+
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 }

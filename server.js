@@ -20,6 +20,7 @@ import fornecedorRoutes from "./routes/fornecedor.js"
 import compraRoutes from "./routes/compra.js"
 import dashboardRoutes from "./routes/dashboard.js"
 import precificacaoRoutes from "./routes/precificacao.js"
+import configuracaoRoutes from "./routes/configuracao.js"
 
 const app = express()
 
@@ -51,6 +52,7 @@ app.use("/api/fornecedores", fornecedorRoutes)
 app.use("/api/compras", compraRoutes)
 app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/comercial", precificacaoRoutes)
+app.use("/api/configuracoes", configuracaoRoutes)
 
 
 
