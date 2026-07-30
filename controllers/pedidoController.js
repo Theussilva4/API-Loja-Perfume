@@ -9,6 +9,123 @@ const generateVendaCode = async () => {
   return `VEN-${nextId.toString().padStart(6, '0')}`;
 };
 
+// --- FUNCOES FEFO ---
+const baixarEstoqueFefo = async (tx, codproduto, codfilial, quantidadeDesejada, numpedido) => {
+  let qtdRestante = quantidadeDesejada;
+
+  // Busca lotes disponíveis ordenados por validade
+  const lotesComValidade = await tx.msestoque_lote.findMany({
+    where: { codproduto, codfilial, quantidade: { gt: 0 }, validade: { not: null } },
+    orderBy: { validade: 'asc' }
+  });
+
+  const lotesSemValidade = await tx.msestoque_lote.findMany({
+    where: { codproduto, codfilial, quantidade: { gt: 0 }, validade: null }
+  });
+
+  const lotesDisponiveis = [...lotesComValidade, ...lotesSemValidade];
+
+  for (const lote of lotesDisponiveis) {
+    if (qtdRestante <= 0) break;
+    const qtdAbater = Math.min(lote.quantidade, qtdRestante);
+    
+    await tx.msestoque_lote.update({
+      where: { id: lote.id },
+      data: { quantidade: { decrement: qtdAbater } }
+    });
+
+    await tx.mssaida_lote.create({
+      data: {
+        codproduto,
+        codfilial,
+        lote: lote.lote,
+        quantidade: qtdAbater,
+        tipo_saida: "VENDA",
+        origem_id: numpedido
+      }
+    });
+
+    qtdRestante -= qtdAbater;
+  }
+
+  if (qtdRestante > 0) {
+    await tx.mssaida_lote.create({
+      data: {
+        codproduto,
+        codfilial,
+        lote: "SEM_LOTE",
+        quantidade: qtdRestante,
+        tipo_saida: "VENDA",
+        origem_id: numpedido
+      }
+    });
+  }
+
+  await tx.msmov_estoque.create({
+    data: {
+      codproduto,
+      codfilial,
+      tipo: "SAIDA",
+      origem: "VENDA",
+      quantidade: quantidadeDesejada,
+      origem_id: numpedido
+    }
+  });
+
+  await tx.msestoque.upsert({
+    where: { codproduto_codfilial: { codproduto, codfilial } },
+    update: { quantidade: { decrement: quantidadeDesejada }, atualizado_em: new Date() },
+    create: { codproduto, codfilial, quantidade: -quantidadeDesejada }
+  });
+};
+
+const estornarEstoqueFefo = async (tx, numpedido, pedido) => {
+  const saidas = await tx.mssaida_lote.findMany({
+    where: { origem_id: numpedido, tipo_saida: "VENDA" }
+  });
+
+  for (const saida of saidas) {
+    const { codproduto, codfilial, lote, quantidade } = saida;
+    if (lote !== "SEM_LOTE") {
+      const loteExistente = await tx.msestoque_lote.findFirst({
+        where: { codproduto, codfilial, lote }
+      });
+      if (loteExistente) {
+        await tx.msestoque_lote.update({
+          where: { id: loteExistente.id },
+          data: { quantidade: { increment: quantidade } }
+        });
+      } else {
+        await tx.msestoque_lote.create({
+          data: { codproduto, codfilial, lote, quantidade }
+        });
+      }
+    }
+  }
+
+  if (pedido) {
+    const filial = pedido.codfilial || 1;
+    for (const item of pedido.mspedido_item) {
+      await tx.msmov_estoque.create({
+        data: {
+          codproduto: item.codproduto,
+          codfilial: filial,
+          tipo: "ENTRADA",
+          origem: "CANCELAMENTO_VENDA",
+          quantidade: item.quantidade,
+          origem_id: numpedido
+        }
+      });
+      await tx.msestoque.upsert({
+        where: { codproduto_codfilial: { codproduto: item.codproduto, codfilial: filial } },
+        update: { quantidade: { increment: item.quantidade }, atualizado_em: new Date() },
+        create: { codproduto: item.codproduto, codfilial: filial, quantidade: item.quantidade }
+      });
+    }
+  }
+};
+// --------------------
+
 export async function listarPedidos(req, res) {
   try {
     const pedidos = await prisma.mspedido.findMany({
@@ -85,34 +202,8 @@ export async function criarPedido(req, res) {
       // Baixa de estoque se a venda for concluída agora
       if (finalStatus === "FINALIZADO") {
         for (const item of itens) {
-          await tx.msmov_estoque.create({
-            data: {
-              codproduto: Number(item.codproduto),
-              codfilial: codfilial ? Number(codfilial) : 1,
-              tipo: "SAIDA",
-              origem: "VENDA",
-              quantidade: Number(item.quantidade),
-              origem_id: pedido.numpedido
-            }
-          });
-
-          await tx.msestoque.upsert({
-            where: {
-              codproduto_codfilial: {
-                codproduto: Number(item.codproduto),
-                codfilial: codfilial ? Number(codfilial) : 1
-              }
-            },
-            update: {
-              quantidade: { decrement: Number(item.quantidade) },
-              atualizado_em: new Date()
-            },
-            create: {
-              codproduto: Number(item.codproduto),
-              codfilial: codfilial ? Number(codfilial) : 1,
-              quantidade: -Number(item.quantidade)
-            }
-          });
+          const filial = codfilial ? Number(codfilial) : 1;
+          await baixarEstoqueFefo(tx, Number(item.codproduto), filial, Number(item.quantidade), pedido.numpedido);
         }
       }
 
@@ -153,39 +244,7 @@ export async function alterarStatus(req, res) {
       await prisma.$transaction(async (tx) => {
         // Se o pedido estava FINALIZADO, precisamos devolver o estoque
         if (pedidoAnterior.status === "FINALIZADO") {
-          for (const item of pedidoAnterior.mspedido_item) {
-            const filial = pedidoAnterior.codfilial || 1;
-            // Cria movimento de devolução de estoque
-            await tx.msmov_estoque.create({
-              data: {
-                codproduto: item.codproduto,
-                codfilial: filial,
-                tipo: "ENTRADA",
-                origem: "CANCELAMENTO_VENDA",
-                quantidade: item.quantidade,
-                origem_id: pedidoAnterior.numpedido
-              }
-            });
-
-            // Incrementa (devolve) o estoque
-            await tx.msestoque.upsert({
-              where: {
-                codproduto_codfilial: {
-                  codproduto: item.codproduto,
-                  codfilial: filial
-                }
-              },
-              update: {
-                quantidade: { increment: item.quantidade },
-                atualizado_em: new Date()
-              },
-              create: {
-                codproduto: item.codproduto,
-                codfilial: filial,
-                quantidade: item.quantidade
-              }
-            });
-          }
+          await estornarEstoqueFefo(tx, pedidoAnterior.numpedido, pedidoAnterior);
         }
 
         // Atualiza o pedido para CANCELADO
@@ -215,34 +274,7 @@ export async function alterarStatus(req, res) {
         // Baixa estoque
         for (const item of pedidoAnterior.mspedido_item) {
           const filial = pedidoAnterior.codfilial || 1;
-          await tx.msmov_estoque.create({
-            data: {
-              codproduto: item.codproduto,
-              codfilial: filial,
-              tipo: "SAIDA",
-              origem: "VENDA",
-              quantidade: item.quantidade,
-              origem_id: pedidoAnterior.numpedido
-            }
-          });
-
-          await tx.msestoque.upsert({
-            where: {
-              codproduto_codfilial: {
-                codproduto: item.codproduto,
-                codfilial: filial
-              }
-            },
-            update: {
-              quantidade: { decrement: item.quantidade },
-              atualizado_em: new Date()
-            },
-            create: {
-              codproduto: item.codproduto,
-              codfilial: filial,
-              quantidade: -item.quantidade
-            }
-          });
+          await baixarEstoqueFefo(tx, item.codproduto, filial, item.quantidade, pedidoAnterior.numpedido);
         }
       });
       return res.json({ mensagem: "Status alterado e estoque baixado." });
@@ -326,34 +358,7 @@ export async function atualizarPedido(req, res) {
       if (pedidoAnterior.status !== "FINALIZADO" && (status === "FINALIZADO" || status === "FINALIZADA")) {
         for (const item of itens) {
           const filial = codfilial ? Number(codfilial) : 1;
-          await tx.msmov_estoque.create({
-            data: {
-              codproduto: Number(item.codproduto),
-              codfilial: filial,
-              tipo: "SAIDA",
-              origem: "VENDA",
-              quantidade: Number(item.quantidade),
-              origem_id: updated.numpedido
-            }
-          });
-
-          await tx.msestoque.upsert({
-            where: {
-              codproduto_codfilial: {
-                codproduto: Number(item.codproduto),
-                codfilial: filial
-              }
-            },
-            update: {
-              quantidade: { decrement: Number(item.quantidade) },
-              atualizado_em: new Date()
-            },
-            create: {
-              codproduto: Number(item.codproduto),
-              codfilial: filial,
-              quantidade: -Number(item.quantidade)
-            }
-          });
+          await baixarEstoqueFefo(tx, Number(item.codproduto), filial, Number(item.quantidade), updated.numpedido);
         }
       }
 

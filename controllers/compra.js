@@ -51,7 +51,9 @@ export const createCompra = async (req, res) => {
               codproduto: item.codproduto,
               quantidade: item.quantidade,
               custo_unitario: item.custo_unitario,
-              valor_total: item.quantidade * item.custo_unitario
+              valor_total: item.quantidade * item.custo_unitario,
+              lote: item.lote ? String(item.lote) : null,
+              validade: item.validade ? new Date(item.validade) : null
             }))
           }
         }
@@ -71,6 +73,35 @@ export const createCompra = async (req, res) => {
               origem_id: compra.codcompra
             }
           });
+
+          // Adiciona/Atualiza lote no estoque
+          const loteValue = item.lote ? String(item.lote) : "PADRAO";
+          const validadeValue = item.validade ? new Date(item.validade) : null;
+          
+          const loteExistente = await tx.msestoque_lote.findFirst({
+            where: {
+              codproduto: item.codproduto,
+              codfilial: codfilial || 1,
+              lote: loteValue
+            }
+          });
+
+          if (loteExistente) {
+            await tx.msestoque_lote.update({
+              where: { id: loteExistente.id },
+              data: { quantidade: { increment: item.quantidade } }
+            });
+          } else {
+            await tx.msestoque_lote.create({
+              data: {
+                codproduto: item.codproduto,
+                codfilial: codfilial || 1,
+                lote: loteValue,
+                validade: validadeValue,
+                quantidade: item.quantidade
+              }
+            });
+          }
 
           // Atualiza saldo
           await tx.msestoque.upsert({
@@ -170,6 +201,23 @@ export const updateCompraStatus = async (req, res) => {
               origem_id: compra.codcompra
             }
           });
+
+          // Estorna o lote
+          const loteValue = item.lote ? String(item.lote) : "PADRAO";
+          const loteExistente = await tx.msestoque_lote.findFirst({
+            where: {
+              codproduto: item.codproduto,
+              codfilial: compra.codfilial || 1,
+              lote: loteValue
+            }
+          });
+
+          if (loteExistente) {
+            await tx.msestoque_lote.update({
+              where: { id: loteExistente.id },
+              data: { quantidade: { decrement: item.quantidade } }
+            });
+          }
 
           // Diminui o estoque
           await tx.msestoque.upsert({
