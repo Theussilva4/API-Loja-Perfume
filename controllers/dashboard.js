@@ -4,10 +4,14 @@ const prisma = new PrismaClient();
 
 export const getDashboardMetrics = async (req, res) => {
   try {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const agora = new Date();
+    // Obtém a data considerando o fuso de Brasília (independente da hora do servidor/Docker)
+    const brtString = agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+    const dataBR = new Date(brtString);
+    
+    // Meia-noite de hoje no Brasil (equivale a 03:00 UTC)
+    const hoje = new Date(Date.UTC(dataBR.getFullYear(), dataBR.getMonth(), dataBR.getDate(), 3, 0, 0));
+    const primeiroDiaMes = new Date(Date.UTC(dataBR.getFullYear(), dataBR.getMonth(), 1, 3, 0, 0));
 
     // Venda do dia
     const vendaDiaResult = await prisma.mspedido.aggregate({
