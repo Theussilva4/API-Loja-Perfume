@@ -34,6 +34,7 @@ export async function listarTabelaPrecos(req, res) {
         descricao: true,
         marca: true,
         codcategoria: true,
+        codigo_barras: true,
       }
     });
 
