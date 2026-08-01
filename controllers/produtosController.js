@@ -40,6 +40,15 @@ export async function listarProdutos(req, res) {
 
 export async function criarProdutos(req, res) {
   try {
+    if (req.body.codigo_barras) {
+      const existeEan = await prisma.msproduto.findFirst({
+        where: { codigo_barras: req.body.codigo_barras }
+      });
+      if (existeEan) {
+        return res.status(400).json({ erro: "Já existe um produto cadastrado com este código de barras." });
+      }
+    }
+
     const produto = await prisma.msproduto.create({
       data: {
         descricao: req.body.descricao ? req.body.descricao.toUpperCase() : "",
@@ -78,6 +87,18 @@ export async function alterarProdutos(req, res) {
     dados.descricao = dados.descricao.toUpperCase();
   }
   try {
+    if (dados.codigo_barras) {
+      const existeEan = await prisma.msproduto.findFirst({
+        where: { 
+          codigo_barras: dados.codigo_barras,
+          codproduto: { not: Number(codproduto) }
+        }
+      });
+      if (existeEan) {
+        return res.status(400).json({ erro: "Já existe outro produto cadastrado com este código de barras." });
+      }
+    }
+
     const produtoAtualizado = await prisma.msproduto.update({
       where: { codproduto: Number(codproduto) },
       data: dados,
