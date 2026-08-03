@@ -80,8 +80,11 @@ export async function criarProdutos(req, res) {
     })
     res.json(produto)
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ erro: "Erro ao criar produtos" })
+    console.error("Erro completo ao criar produto:", error)
+    res.status(500).json({ 
+      erro: "Erro ao criar produtos", 
+      detalhe: error.message || String(error)
+    })
   }
 }
 
@@ -157,7 +160,11 @@ export async function alterarProdutos(req, res) {
     })
     res.json(produtoAtualizado)
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao alterar produto" })
+    console.error("Erro completo ao alterar produto:", error)
+    res.status(500).json({ 
+      erro: "Erro ao alterar produto", 
+      detalhe: error.message || String(error) 
+    })
   }
 }
 export async function alterarStatusProduto(req, res) {
