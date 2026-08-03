@@ -31,22 +31,10 @@ export const getDashboardMetrics = async (req, res) => {
       dataPedidoConditionMes.lt = nextDay;
     }
 
-    // O dia específico para "Venda do Dia" será a dataFinal (ou hoje)
+    // Venda do Dia agora será SEMPRE o dia atual (hoje), ignorando o filtro
     let diaEspecificoInicio = hoje;
     let diaEspecificoFim = new Date(hoje);
     diaEspecificoFim.setDate(diaEspecificoFim.getDate() + 1);
-
-    if (dataFinal) {
-      const parts = dataFinal.split('-');
-      diaEspecificoInicio = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 3, 0, 0));
-      diaEspecificoFim = new Date(diaEspecificoInicio);
-      diaEspecificoFim.setDate(diaEspecificoFim.getDate() + 1);
-    } else if (dataInicial && !dataFinal) {
-      const parts = dataInicial.split('-');
-      diaEspecificoInicio = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 3, 0, 0));
-      diaEspecificoFim = new Date(diaEspecificoInicio);
-      diaEspecificoFim.setDate(diaEspecificoFim.getDate() + 1);
-    }
 
     // Venda do dia (respeita o último dia filtrado)
     const vendaDiaResult = await prisma.mspedido.aggregate({
