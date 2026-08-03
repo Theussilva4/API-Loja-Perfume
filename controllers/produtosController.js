@@ -1,4 +1,5 @@
 import prisma from "../prismaClient.js"
+import { uploadImageToCloudinary, deleteImageFromCloudinary } from "../utils/cloudinary.js"
 
 
 
@@ -49,6 +50,15 @@ export async function criarProdutos(req, res) {
       }
     }
 
+    let imagem_url = null;
+    let imagem_public_id = null;
+
+    if (req.file) {
+      const result = await uploadImageToCloudinary(req.file.buffer);
+      imagem_url = result.secure_url;
+      imagem_public_id = result.public_id;
+    }
+
     const produto = await prisma.msproduto.create({
       data: {
         descricao: req.body.descricao ? req.body.descricao.toUpperCase() : "",
@@ -63,7 +73,9 @@ export async function criarProdutos(req, res) {
         codfornecedor: req.body.codfornecedor ? Number(req.body.codfornecedor) : null,
         ativo: req.body.ativo || "S",
         data_cadastro: new Date(),
-        resumo: req.body.resumo || ""
+        resumo: req.body.resumo || "",
+        imagem_url,
+        imagem_public_id
       }
     })
     res.json(produto)
@@ -98,6 +110,38 @@ export async function alterarProdutos(req, res) {
         return res.status(400).json({ erro: "Já existe outro produto cadastrado com este código de barras." });
       }
     }
+
+    const produtoAtual = await prisma.msproduto.findUnique({
+      where: { codproduto: Number(codproduto) }
+    });
+
+    if (!produtoAtual) {
+      return res.status(404).json({ erro: "Produto não encontrado." });
+    }
+
+    let imagem_url = produtoAtual.imagem_url;
+    let imagem_public_id = produtoAtual.imagem_public_id;
+
+    if (req.file) {
+      if (imagem_public_id) {
+        await deleteImageFromCloudinary(imagem_public_id).catch(() => {});
+      }
+      const result = await uploadImageToCloudinary(req.file.buffer);
+      imagem_url = result.secure_url;
+      imagem_public_id = result.public_id;
+    } else if (req.body.remover_imagem === 'true') {
+      if (imagem_public_id) {
+        await deleteImageFromCloudinary(imagem_public_id).catch(() => {});
+      }
+      imagem_url = null;
+      imagem_public_id = null;
+    }
+
+    // Limpar remover_imagem de 'dados' para não dar erro no Prisma
+    delete dados.remover_imagem;
+    
+    dados.imagem_url = imagem_url;
+    dados.imagem_public_id = imagem_public_id;
 
     const produtoAtualizado = await prisma.msproduto.update({
       where: { codproduto: Number(codproduto) },

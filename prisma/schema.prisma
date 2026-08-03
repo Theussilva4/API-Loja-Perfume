@@ -59,6 +59,8 @@ model msproduto {
   updated_at     DateTime?       @updatedAt @db.DateTime(0)
   created_by     Int?
   codfornecedor  Int?
+  imagem_url     String?         @db.VarChar(255)
+  imagem_public_id String?       @db.VarChar(100)
   msfornecedor   msfornecedor?   @relation(fields: [codfornecedor], references: [codfornecedor], onDelete: NoAction, onUpdate: NoAction)
   updated_by     Int?
   mspedido_item  mspedido_item[]
