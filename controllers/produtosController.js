@@ -98,6 +98,13 @@ export async function alterarProdutos(req, res) {
   if (dados.descricao) {
     dados.descricao = dados.descricao.toUpperCase();
   }
+
+  // Converter campos numéricos vindos do FormData
+  if (dados.codcategoria !== undefined) dados.codcategoria = Number(dados.codcategoria);
+  if (dados.estoque_minimo !== undefined) dados.estoque_minimo = Number(dados.estoque_minimo);
+  if (dados.codfornecedor !== undefined) dados.codfornecedor = Number(dados.codfornecedor);
+  if (dados.volume_ml !== undefined) dados.volume_ml = Number(dados.volume_ml);
+
   try {
     if (dados.codigo_barras) {
       const existeEan = await prisma.msproduto.findFirst({
