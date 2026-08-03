@@ -65,7 +65,7 @@ export async function criarProdutos(req, res) {
         marca: req.body.marca || "",
         codcategoria: Number(req.body.codcategoria),
         codigo_barras: req.body.codigo_barras || null,
-        volume_ml: req.body.volume_ml || null,
+        volume_ml: req.body.volume_ml ? Number(req.body.volume_ml) : null,
         preco_normal: Number(req.body.preco_normal || 0),
         preco_promocao: Number(req.body.preco_promocao || 0),
         custo: req.body.custo ? Number(req.body.custo) : 0,
