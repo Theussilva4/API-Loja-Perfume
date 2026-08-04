@@ -48,6 +48,11 @@ export async function listarProdutos(req, res) {
 export async function criarProdutos(req, res) {
   try {
     if (req.body.codigo_barras) {
+      req.body.codigo_barras = String(req.body.codigo_barras).replace(/\D/g, "");
+      if (req.body.codigo_barras === "") req.body.codigo_barras = null;
+    }
+
+    if (req.body.codigo_barras) {
       const existeEan = await prisma.msproduto.findFirst({
         where: { codigo_barras: req.body.codigo_barras }
       });
@@ -112,6 +117,15 @@ export async function alterarProdutos(req, res) {
   if (dados.volume_ml !== undefined) dados.volume_ml = Number(dados.volume_ml);
 
   try {
+    if (dados.codigo_barras !== undefined) {
+      if (dados.codigo_barras) {
+        dados.codigo_barras = String(dados.codigo_barras).replace(/\D/g, "");
+      }
+      if (!dados.codigo_barras) {
+        dados.codigo_barras = null;
+      }
+    }
+
     if (dados.codigo_barras) {
       const existeEan = await prisma.msproduto.findFirst({
         where: { 

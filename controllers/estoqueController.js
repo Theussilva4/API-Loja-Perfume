@@ -15,9 +15,9 @@ export async function alterarEstoque(req, res) {
   const {...dados} = req.body;
 
  if (!codestoque) {
-    return res.status(400).json({ erro: "O código do estoque é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo do estoque Ã© obrigatÃ³rio" });
   }
-  // Remover campos que não devem ser atualizados
+  // Remover campos que nÃ£o devem ser atualizados
   const camposProibidos = ["data_cadastro", "ativo"];
   camposProibidos.forEach(campo => delete dados[campo]);
   try {
@@ -57,7 +57,7 @@ export async function listarMovimentacoesSaida(req, res) {
     res.json(saidasComProduto);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao buscar saídas" });
+    res.status(500).json({ erro: "Erro ao buscar saÃ­das" });
   }
 }
 
@@ -66,7 +66,7 @@ export async function registrarSaidaManual(req, res) {
     const { codproduto, codfilial, quantidade, origem } = req.body;
 
     if (!codproduto || !quantidade || quantidade <= 0) {
-      return res.status(400).json({ erro: "Produto e quantidade válidos são obrigatórios" });
+      return res.status(400).json({ erro: "Produto e quantidade vÃ¡lidos sÃ£o obrigatÃ³rios" });
     }
 
     const filialId = codfilial ? Number(codfilial) : 1;
@@ -106,7 +106,7 @@ export async function registrarSaidaManual(req, res) {
     res.json(result);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao registrar saída" });
+    res.status(500).json({ erro: "Erro ao registrar saÃ­da" });
   }
 }
 
@@ -119,11 +119,11 @@ export async function cancelarSaidaManual(req, res) {
     });
 
     if (!mov) {
-      return res.status(404).json({ erro: "Movimentação não encontrada" });
+      return res.status(404).json({ erro: "MovimentaÃ§Ã£o nÃ£o encontrada" });
     }
 
     if (mov.tipo !== "SAIDA") {
-      return res.status(400).json({ erro: "Esta movimentação não é uma saída" });
+      return res.status(400).json({ erro: "Esta movimentaÃ§Ã£o nÃ£o Ã© uma saÃ­da" });
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -149,7 +149,7 @@ export async function cancelarSaidaManual(req, res) {
 
     res.json(result);
   } catch (error) {
-    console.error("Erro ao cancelar saída:", error);
-    res.status(500).json({ erro: "Erro ao cancelar saída" });
+    console.error("Erro ao cancelar saÃ­da:", error);
+    res.status(500).json({ erro: "Erro ao cancelar saÃ­da" });
   }
 }
