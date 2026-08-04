@@ -1,7 +1,5 @@
 import prisma from "../prismaClient.js"
 
-
-
 export async function listarEstoque(req, res) {
   try {
     const estoque = await prisma.msestoque.findMany()
@@ -17,9 +15,9 @@ export async function alterarEstoque(req, res) {
   const {...dados} = req.body;
 
  if (!codestoque) {
-    return res.status(400).json({ erro: "O cÃ³digo do estoque Ã© obrigatÃ³rio" });
+    return res.status(400).json({ erro: "O código do estoque é obrigatório" });
   }
-  // Remover campos que nÃ£o devem ser atualizados
+  // Remover campos que não devem ser atualizados
   const camposProibidos = ["data_cadastro", "ativo"];
   camposProibidos.forEach(campo => delete dados[campo]);
   try {
@@ -59,7 +57,7 @@ export async function listarMovimentacoesSaida(req, res) {
     res.json(saidasComProduto);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao buscar saÃ­das" });
+    res.status(500).json({ erro: "Erro ao buscar saídas" });
   }
 }
 
@@ -68,7 +66,7 @@ export async function registrarSaidaManual(req, res) {
     const { codproduto, codfilial, quantidade, origem } = req.body;
 
     if (!codproduto || !quantidade || quantidade <= 0) {
-      return res.status(400).json({ erro: "Produto e quantidade vÃ¡lidos sÃ£o obrigatÃ³rios" });
+      return res.status(400).json({ erro: "Produto e quantidade válidos são obrigatórios" });
     }
 
     const filialId = codfilial ? Number(codfilial) : 1;
@@ -108,6 +106,50 @@ export async function registrarSaidaManual(req, res) {
     res.json(result);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao registrar saÃ­da" });
+    res.status(500).json({ erro: "Erro ao registrar saída" });
+  }
+}
+
+export async function cancelarSaidaManual(req, res) {
+  try {
+    const { id } = req.params;
+
+    const mov = await prisma.msmov_estoque.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!mov) {
+      return res.status(404).json({ erro: "Movimentação não encontrada" });
+    }
+
+    if (mov.tipo !== "SAIDA") {
+      return res.status(400).json({ erro: "Esta movimentação não é uma saída" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.msestoque.update({
+        where: {
+          codproduto_codfilial: {
+            codproduto: mov.codproduto,
+            codfilial: mov.codfilial
+          }
+        },
+        data: {
+          quantidade: { increment: mov.quantidade },
+          atualizado_em: new Date()
+        }
+      });
+
+      const deletada = await tx.msmov_estoque.delete({
+        where: { id: mov.id }
+      });
+
+      return deletada;
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error("Erro ao cancelar saída:", error);
+    res.status(500).json({ erro: "Erro ao cancelar saída" });
   }
 }

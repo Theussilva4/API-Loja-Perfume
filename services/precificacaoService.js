@@ -70,6 +70,7 @@ export async function calculatePrice(codproduto) {
   }
 
   const precoBase = Number(tabelaPreco.preco_venda);
+  const precoCartao = Number(tabelaPreco.preco_cartao || 0);
   const custoBase = Number(tabelaPreco.preco_custo);
   let precoFinal = precoBase;
   let promocaoAplicada = null;
@@ -134,6 +135,7 @@ export async function calculatePrice(codproduto) {
 
   return {
     precoBase,
+    precoCartao,
     custoBase,
     promocaoAplicada,
     descontoReais,
@@ -149,7 +151,7 @@ export async function calculatePrice(codproduto) {
  * Cria ou Atualiza a Tabela de Preço do Produto
  * Garante que o histórico seja mantido.
  */
-export async function setPrecoBase(codproduto, preco_custo, preco_venda, codusur, desconto_maximo = 0) {
+export async function setPrecoBase(codproduto, preco_custo, preco_venda, codusur, desconto_maximo = 0, preco_cartao = 0) {
   // Encontra a vigência atual e encerra
   const atual = await prisma.mstabela_preco.findFirst({
     where: {
@@ -164,7 +166,8 @@ export async function setPrecoBase(codproduto, preco_custo, preco_venda, codusur
     if (
       Number(atual.preco_custo) === Number(preco_custo) && 
       Number(atual.preco_venda) === Number(preco_venda) &&
-      Number(atual.desconto_maximo || 0) === Number(desconto_maximo || 0)
+      Number(atual.desconto_maximo || 0) === Number(desconto_maximo || 0) &&
+      Number(atual.preco_cartao || 0) === Number(preco_cartao || 0)
     ) {
       return atual;
     }
@@ -180,6 +183,7 @@ export async function setPrecoBase(codproduto, preco_custo, preco_venda, codusur
       codproduto: Number(codproduto),
       preco_custo: Number(preco_custo),
       preco_venda: Number(preco_venda),
+      preco_cartao: Number(preco_cartao),
       desconto_maximo: Number(desconto_maximo),
       data_inicio: new Date(),
       created_by: codusur ? Number(codusur) : null

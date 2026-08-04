@@ -48,9 +48,6 @@ model msproduto {
   codcategoria   Int?
   codigo_barras  Decimal?        @db.Decimal(20, 0)
   volume_ml      Int?
-  custo          Decimal?        @db.Decimal(12, 2)
-  preco_normal   Decimal         @db.Decimal(12, 2)
-  preco_promocao Decimal?        @db.Decimal(12, 2)
   estoque_minimo Int?            @default(0)
   resumo         String?         @db.VarChar(255)
   ativo          String?         @default("S") @db.Char(1)
@@ -69,6 +66,7 @@ model msproduto {
   mspromocao_item mspromocao_item[]
   msestoque_lote msestoque_lote[]
   mssaida_lote   mssaida_lote[]
+  mskit_item     mskit_item[]
 }
 
 model msstatus_pedido {
@@ -238,6 +236,7 @@ model mspedido {
   msusuario_mspedido_codusur_vendedorTomsusuario msusuario?      @relation("mspedido_codusur_vendedorTomsusuario", fields: [codusur_vendedor], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_3")
   msusuario_mspedido_codusur_cancelouTomsusuario msusuario?      @relation("mspedido_codusur_cancelouTomsusuario", fields: [codusur_cancelou], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_cancelou")
   mspedido_item                                  mspedido_item[]
+  mspedido_kit                                   mspedido_kit[]
 
   @@index([codcliente], map: "codcliente")
   @@index([codusur_criou], map: "codusur_criou")
@@ -253,10 +252,12 @@ model mspedido_item {
   quantidade     Int?
   preco_unitario Decimal?   @db.Decimal(12, 2)
   valor_total    Decimal?   @db.Decimal(12, 2)
+  pedido_kit_id  Int?
   created_at     DateTime?  @default(now()) @db.DateTime(0)
   updated_at     DateTime?  @updatedAt @db.DateTime(0)
   mspedido       mspedido?  @relation(fields: [numpedido], references: [numpedido], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_item_ibfk_1")
   msproduto      msproduto? @relation(fields: [codproduto], references: [codproduto], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_item_ibfk_2")
+  mspedido_kit   mspedido_kit? @relation(fields: [pedido_kit_id], references: [id])
 
   @@index([codproduto], map: "codproduto")
   @@index([numpedido], map: "numpedido")
@@ -388,6 +389,7 @@ model mstabela_preco {
   data_fim       DateTime? 
   ativo          String?   @default("S") @db.Char(1)
   desconto_maximo Decimal? @db.Decimal(5,2) @default(0)
+  preco_cartao   Decimal?  @db.Decimal(12,2) @default(0)
   
   created_at     DateTime  @default(now())
   created_by     Int?      
@@ -418,4 +420,49 @@ model mspromocao_item {
   
   mspromocao  mspromocao @relation(fields: [codpromocao], references: [codpromocao])
   msproduto   msproduto  @relation(fields: [codproduto], references: [codproduto])
+}
+
+model mskit {
+  id          Int      @id @default(autoincrement())
+  uuid        String?  @default(uuid()) @db.VarChar(36)
+  nome        String   @db.VarChar(200)
+  descricao   String?  @db.Text
+  preco_kit   Decimal  @db.Decimal(12, 2)
+  ativo       String?  @default("S") @db.Char(1)
+  data_inicio DateTime? @db.Date
+  data_fim    DateTime? @db.Date
+  created_at  DateTime? @default(now()) @db.DateTime(0)
+  updated_at  DateTime? @updatedAt @db.DateTime(0)
+  created_by  Int?
+  updated_by  Int?
+  
+  itens       mskit_item[]
+  pedidos     mspedido_kit[]
+}
+
+model mskit_item {
+  id         Int      @id @default(autoincrement())
+  uuid       String?  @default(uuid()) @db.VarChar(36)
+  kit_id     Int
+  produto_id Int
+  quantidade Int
+  
+  kit        mskit    @relation(fields: [kit_id], references: [id])
+  produto    msproduto @relation(fields: [produto_id], references: [codproduto])
+}
+
+model mspedido_kit {
+  id             Int      @id @default(autoincrement())
+  uuid           String?  @default(uuid()) @db.VarChar(36)
+  pedido_id      Int
+  kit_id         Int
+  nome_kit       String   @db.VarChar(200)
+  quantidade     Int
+  valor_original Decimal  @db.Decimal(12, 2)
+  valor_kit      Decimal  @db.Decimal(12, 2)
+  desconto       Decimal? @db.Decimal(12, 2)
+  
+  pedido         mspedido @relation(fields: [pedido_id], references: [numpedido])
+  kit            mskit    @relation(fields: [kit_id], references: [id])
+  itens          mspedido_item[]
 }

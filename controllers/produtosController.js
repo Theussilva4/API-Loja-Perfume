@@ -15,12 +15,16 @@ export async function listarProdutos(req, res) {
       }
     });
 
-    // Se o produto tiver um preço na tabela de preços, sobrepõe o preco_normal original
+    // Se o produto tiver um preço na tabela de preços, sobrepõe. Senão, vai 0.
     const produtosFormatados = produtos.map(p => {
-      let precoFinal = Number(p.preco_normal || 0);
+      let precoFinal = 0;
+      let precoCartaoFinal = 0;
+      let custoFinal = 0;
       
       if (p.mstabela_preco && p.mstabela_preco.length > 0) {
         precoFinal = Number(p.mstabela_preco[0].preco_venda);
+        precoCartaoFinal = Number(p.mstabela_preco[0].preco_cartao || 0);
+        custoFinal = Number(p.mstabela_preco[0].preco_custo || 0);
       }
       
       // Remove a propriedade mstabela_preco para não poluir o JSON
@@ -28,7 +32,9 @@ export async function listarProdutos(req, res) {
       
       return {
         ...resto,
-        preco_normal: precoFinal
+        preco_normal: precoFinal,
+        preco_cartao: precoCartaoFinal,
+        custo: custoFinal
       };
     });
 
@@ -66,9 +72,6 @@ export async function criarProdutos(req, res) {
         codcategoria: Number(req.body.codcategoria),
         codigo_barras: req.body.codigo_barras || null,
         volume_ml: req.body.volume_ml ? Number(req.body.volume_ml) : null,
-        preco_normal: Number(req.body.preco_normal || 0),
-        preco_promocao: Number(req.body.preco_promocao || 0),
-        custo: req.body.custo ? Number(req.body.custo) : 0,
         estoque_minimo: req.body.estoque_minimo ? Number(req.body.estoque_minimo) : 0,
         codfornecedor: req.body.codfornecedor ? Number(req.body.codfornecedor) : null,
         ativo: req.body.ativo || "S",

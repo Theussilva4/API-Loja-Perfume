@@ -70,10 +70,10 @@ export async function getHistoricoPrecos(req, res) {
 
 export async function definirPrecoBase(req, res) {
   const { codproduto } = req.params;
-  const { preco_custo, preco_venda, desconto_maximo, codusur } = req.body;
+  const { preco_custo, preco_venda, desconto_maximo, preco_cartao, codusur } = req.body;
 
   try {
-    const novoPreco = await precificacaoService.setPrecoBase(codproduto, preco_custo, preco_venda, codusur, desconto_maximo);
+    const novoPreco = await precificacaoService.setPrecoBase(codproduto, preco_custo, preco_venda, codusur, desconto_maximo, preco_cartao);
     res.json(novoPreco);
   } catch (error) {
     console.error(error);

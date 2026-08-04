@@ -14,6 +14,7 @@ import vendedorRoutes from "./routes/vendedor.js"
 import usuarioRoutes from "./routes/usuario.js"
 import loginRoutes from "./routes/login.js"
 import pedidoRoutes from "./routes/pedido.js"
+import kitsRoutes from "./routes/kits.js"
 import planopagamentoRoutes from "./routes/planopagamento.js"
 
 import fornecedorRoutes from "./routes/fornecedor.js"
@@ -47,6 +48,7 @@ app.use("/api/vendedor", vendedorRoutes)
 app.use("/api/usuario", usuarioRoutes)
 app.use("/api/login", loginRoutes)
 app.use("/api/pedidos", pedidoRoutes)
+app.use("/api/kits", kitsRoutes)
 app.use("/api/planopagamento", planopagamentoRoutes)
 app.use("/api/fornecedores", fornecedorRoutes)
 app.use("/api/compras", compraRoutes)
