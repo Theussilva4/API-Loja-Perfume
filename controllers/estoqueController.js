@@ -1,4 +1,5 @@
 import prisma from "../prismaClient.js"
+import { logAuditoria } from "../services/auditService.js"
 
 export async function listarEstoque(req, res) {
   try {
@@ -113,6 +114,7 @@ export async function registrarSaidaManual(req, res) {
 export async function cancelarSaidaManual(req, res) {
   try {
     const { id } = req.params;
+    const { motivo } = req.body; // Vem do front
 
     const mov = await prisma.msmov_estoque.findUnique({
       where: { id: Number(id) }
@@ -147,9 +149,149 @@ export async function cancelarSaidaManual(req, res) {
       return deletada;
     });
 
+    await logAuditoria({
+      acao: "CANCELAR",
+      tabela: "msmov_estoque",
+      registro_id: id,
+      campo: "id",
+      valor_antigo: JSON.stringify(mov),
+      valor_novo: null,
+      motivo: motivo || "Sem motivo"
+    });
+
     res.json(result);
   } catch (error) {
     console.error("Erro ao cancelar saída:", error);
     res.status(500).json({ erro: "Erro ao cancelar saída" });
+  }
+}
+
+export async function extratoProduto(req, res) {
+  try {
+    const { id } = req.params;
+    let { dataInicial, dataFinal } = req.query;
+
+    const codproduto = Number(id);
+
+    let whereMovs = { codproduto };
+    let whereSaldoInicial = { codproduto };
+
+    if (dataInicial) {
+      const start = new Date(dataInicial);
+      whereMovs.data_mov = { gte: start };
+      whereSaldoInicial.data_mov = { lt: start };
+    }
+    if (dataFinal) {
+      const end = new Date(dataFinal);
+      end.setHours(23, 59, 59, 999);
+      if (whereMovs.data_mov) {
+        whereMovs.data_mov.lte = end;
+      } else {
+        whereMovs.data_mov = { lte: end };
+      }
+    }
+
+    // 1. Calcula o saldo inicial
+    const movimentosAnteriores = await prisma.msmov_estoque.findMany({
+      where: whereSaldoInicial,
+      select: { tipo: true, quantidade: true }
+    });
+
+    let saldoAcumulado = 0;
+    for (const m of movimentosAnteriores) {
+      if (m.tipo === "ENTRADA") saldoAcumulado += m.quantidade;
+      else if (m.tipo === "SAIDA") saldoAcumulado -= m.quantidade;
+    }
+    const saldoInicial = saldoAcumulado;
+
+    // 2. Busca os movimentos do periodo
+    const movimentos = await prisma.msmov_estoque.findMany({
+      where: whereMovs,
+      orderBy: { data_mov: 'asc' }
+    });
+
+    let totalEntradas = 0;
+    let totalSaidas = 0;
+
+    const resultado = [];
+
+    for (const mov of movimentos) {
+      let documento = "";
+      let envolvido = "";
+      let precoUnitario = null;
+      let operacao = `${mov.tipo === 'ENTRADA' ? 'E' : 'S'} - ${mov.origem}`;
+      let motivo = "";
+
+      if (mov.tipo === "ENTRADA") {
+        totalEntradas += mov.quantidade;
+        saldoAcumulado += mov.quantidade;
+      } else {
+        totalSaidas += mov.quantidade;
+        saldoAcumulado -= mov.quantidade;
+      }
+
+      if (mov.origem === "VENDA" && mov.origem_id) {
+        const pedido = await prisma.mspedido.findUnique({
+          where: { numpedido: mov.origem_id },
+          include: { 
+            mscliente: true,
+            msusuario_mspedido_codusur_vendedorTomsusuario: true,
+            mspedido_item: { where: { codproduto } }
+          }
+        });
+        if (pedido) {
+          documento = pedido.numpedido.toString();
+          envolvido = pedido.mscliente?.nome || "";
+          if (pedido.mspedido_item.length > 0) {
+            precoUnitario = pedido.mspedido_item[0].preco_venda;
+          }
+        }
+      } else if (mov.origem === "COMPRA" && mov.origem_id) {
+        const compra = await prisma.mscompra.findUnique({
+          where: { codcompra: mov.origem_id },
+          include: { 
+            msfornecedor: true,
+            mscompra_item: { where: { codproduto } }
+          }
+        });
+        if (compra) {
+          documento = compra.codcompra.toString();
+          envolvido = compra.msfornecedor?.nome || "";
+          if (compra.mscompra_item.length > 0) {
+            precoUnitario = compra.mscompra_item[0].custo_unitario;
+          }
+        }
+      } else if (mov.tipo === "SAIDA" && mov.origem === "CANCELAMENTO_COMPRA") {
+         documento = mov.origem_id ? mov.origem_id.toString() : "";
+      } else if (mov.tipo === "ENTRADA" && mov.origem === "CANCELAMENTO_VENDA") {
+         documento = mov.origem_id ? mov.origem_id.toString() : "";
+      }
+
+      resultado.push({
+        id: mov.id,
+        data_mov: mov.data_mov,
+        operacao,
+        motivo: mov.origem !== "VENDA" && mov.origem !== "COMPRA" ? mov.origem : "", // Simplificado
+        documento,
+        envolvido,
+        precoUnitario,
+        qt_entrada: mov.tipo === "ENTRADA" ? mov.quantidade : 0,
+        qt_saida: mov.tipo === "SAIDA" ? mov.quantidade : 0,
+        saldo_est: saldoAcumulado
+      });
+    }
+
+    res.json({
+      saldo_inicial: saldoInicial,
+      movimentacoes: resultado,
+      totais: {
+        entradas: totalEntradas,
+        saidas: totalSaidas
+      },
+      saldo_final: saldoAcumulado
+    });
+  } catch (error) {
+    console.error("Erro ao gerar extrato:", error);
+    res.status(500).json({ erro: "Erro ao gerar extrato de estoque" });
   }
 }

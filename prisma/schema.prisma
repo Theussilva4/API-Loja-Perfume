@@ -46,7 +46,7 @@ model msproduto {
   marca          String?         @db.VarChar(100)
   codmarca       Int?
   codcategoria   Int?
-  codigo_barras  Decimal?        @db.Decimal(20, 0)
+  codigo_barras  Decimal?        @unique @db.Decimal(20, 0)
   volume_ml      Int?
   estoque_minimo Int?            @default(0)
   resumo         String?         @db.VarChar(255)
@@ -213,6 +213,7 @@ model mspedido {
   data_pedido                                    DateTime?       @default(now()) @db.DateTime(0)
   subtotal                                       Decimal?        @default(0) @db.Decimal(12, 2)
   desconto                                       Decimal?        @default(0) @db.Decimal(12, 2)
+  valor_frete                                    Decimal?        @default(0) @db.Decimal(12, 2)
   valor_total                                    Decimal?        @default(0) @db.Decimal(12, 2)
   status                                         String?         @default("EM_DIGITACAO") @db.VarChar(20) // EM_DIGITACAO, FINALIZADO, CANCELADO
   codfilial                                      Int?
@@ -466,3 +467,21 @@ model mspedido_kit {
   kit            mskit    @relation(fields: [kit_id], references: [id])
   itens          mspedido_item[]
 }
+
+model ms_log_auditoria {
+  id               Int       @id @default(autoincrement())
+  codusuario       Int?      
+  nome_usuario     String?   @db.VarChar(100) 
+  acao             String    @db.VarChar(50)  // "CRIAR", "ALTERAR", "EXCLUIR", "CANCELAR"
+  tabela           String    @db.VarChar(50)  // Ex: "msproduto"
+  registro_id      String?   @db.VarChar(50)  // ID do produto/pedido que sofreu acao
+  
+  campo            String?   @db.VarChar(50)  // Ex: "preco_venda" ou "descricao"
+  valor_antigo     String?   @db.Text         // Ex: "100.00"
+  valor_novo       String?   @db.Text         // Ex: "120.00"
+  
+  motivo           String?   @db.Text         // Justificativa do usuario
+  data_acao        DateTime  @default(now()) @db.DateTime(0)
+}
+
+

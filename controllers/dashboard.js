@@ -7,100 +7,127 @@ export const getDashboardMetrics = async (req, res) => {
     const { dataInicial, dataFinal } = req.query;
 
     const agora = new Date();
-    // Obtém a data considerando o fuso de Brasília
     const brtString = agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
     const dataBR = new Date(brtString);
     
-    // Meia-noite de hoje no Brasil (equivale a 03:00 UTC)
+    // Datas base (Meia-noite de hoje no Brasil = 03:00 UTC)
     const hoje = new Date(Date.UTC(dataBR.getFullYear(), dataBR.getMonth(), dataBR.getDate(), 3, 0, 0));
-    const defaultPrimeiroDiaMes = new Date(Date.UTC(dataBR.getFullYear(), dataBR.getMonth(), 1, 3, 0, 0));
+    const inicioMes = new Date(Date.UTC(dataBR.getFullYear(), dataBR.getMonth(), 1, 3, 0, 0));
+    const inicioAno = new Date(Date.UTC(dataBR.getFullYear(), 0, 1, 3, 0, 0));
 
-    let periodoInicio = defaultPrimeiroDiaMes;
-    let dataPedidoConditionMes = { gte: periodoInicio };
+    let periodoInicio = inicioMes;
+    let dataPedidoCondition = { gte: periodoInicio };
 
     if (dataInicial) {
       const parts = dataInicial.split('-');
       periodoInicio = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 3, 0, 0));
-      dataPedidoConditionMes.gte = periodoInicio;
+      dataPedidoCondition.gte = periodoInicio;
     }
 
     if (dataFinal) {
       const parts = dataFinal.split('-');
       const nextDay = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 3, 0, 0));
       nextDay.setDate(nextDay.getDate() + 1);
-      dataPedidoConditionMes.lt = nextDay;
+      dataPedidoCondition.lt = nextDay;
     }
 
-    // Venda do Dia agora será SEMPRE o dia atual (hoje), ignorando o filtro
-    let diaEspecificoInicio = hoje;
-    let diaEspecificoFim = new Date(hoje);
-    diaEspecificoFim.setDate(diaEspecificoFim.getDate() + 1);
+    // Fim do dia de hoje para queries de "hoje"
+    let fimHoje = new Date(hoje);
+    fimHoje.setDate(fimHoje.getDate() + 1);
 
-    // Venda do dia (respeita o último dia filtrado)
-    const vendaDiaResult = await prisma.mspedido.aggregate({
+    // ==========================================
+    // 1. FATURAMENTO (HOJE, MÊS, ANO) e PEDIDOS
+    // ==========================================
+
+    const pedidosHoje = await prisma.mspedido.findMany({
+      where: { data_pedido: { gte: hoje, lt: fimHoje }, status: { not: "CANCELADO" } },
+      include: { mspedido_item: true }
+    });
+
+    const pedidosMes = await prisma.mspedido.aggregate({
+      where: { data_pedido: { gte: inicioMes }, status: { not: "CANCELADO" } },
+      _sum: { valor_total: true }
+    });
+
+    const pedidosAno = await prisma.mspedido.aggregate({
+      where: { data_pedido: { gte: inicioAno }, status: { not: "CANCELADO" } },
+      _sum: { valor_total: true }
+    });
+
+    let faturamentoHoje = 0;
+    let lucroBrutoHoje = 0;
+    let qtdKitsHoje = 0;
+    let pedidosEmAbertoHoje = 0;
+    let pedidosFinalizadosHoje = 0;
+
+    for (const ped of pedidosHoje) {
+      faturamentoHoje += Number(ped.valor_total || 0);
+      
+      if (ped.status === "FINALIZADO" || ped.status === "ENTREGUE") {
+        pedidosFinalizadosHoje++;
+      } else {
+        pedidosEmAbertoHoje++;
+      }
+
+      for (const item of ped.mspedido_item) {
+        const pVenda = Number(item.preco_venda || 0);
+        const pCusto = Number(item.preco_custo || 0);
+        const qtd = Number(item.quantidade || 0);
+        lucroBrutoHoje += (pVenda - pCusto) * qtd;
+      }
+    }
+
+    const ticketMedio = pedidosHoje.length > 0 ? (faturamentoHoje / pedidosHoje.length) : 0;
+
+    // ==========================================
+    // CLIENTES NOVOS E ATIVOS
+    const clientesBase = await prisma.mscliente.count({ where: { ativo: "S" } });
+    const clientesNovosMes = await prisma.mscliente.count({
+      where: { ativo: "S", data_cadastro: { gte: inicioMes } }
+    });
+
+    // 2. TOP CLIENTES (Período)
+    // ==========================================
+    const topClientes = await prisma.mspedido.groupBy({
+      by: ['codcliente'],
       where: {
-        data_pedido: { gte: diaEspecificoInicio, lt: diaEspecificoFim },
+        data_pedido: dataPedidoCondition,
         status: { not: "CANCELADO" },
+        /* codcliente: { not: null } */
       },
       _sum: { valor_total: true },
+      orderBy: { _sum: { valor_total: 'desc' } },
+      take: 5
     });
 
-    // Venda do periodo (padrao: mes atual)
-    const vendaMesResult = await prisma.mspedido.aggregate({
-      where: {
-        data_pedido: dataPedidoConditionMes,
-        status: { not: "CANCELADO" },
-      },
-      _sum: { valor_total: true },
+    const clientesIds = topClientes.map(t => t.codcliente).filter(id => id !== null);
+    const clientesNomes = await prisma.mscliente.findMany({
+      where: { codcliente: { in: clientesIds } },
+      select: { codcliente: true, nome: true }
     });
 
-    // Clientes cadastrados (Total global, sem filtro de data)
-    const clientesCount = await prisma.mscliente.count({
-      where: { ativo: "S" },
+    const topClientesFormatado = topClientes.map(t => {
+      const cli = clientesNomes.find(c => c.codcliente === t.codcliente);
+      return {
+        nome: cli ? cli.nome : "Cliente não identificado",
+        total: Number(t._sum.valor_total || 0)
+      };
     });
 
-    // Produtos cadastrados (Total global, sem filtro de data)
-    const produtosCount = await prisma.msproduto.count({
-      where: { ativo: "S" },
-    });
-
-    // Últimas vendas (Filtramos pelo período selecionado)
-    const ultimasVendas = await prisma.mspedido.findMany({
-      where: {
-        data_pedido: dataPedidoConditionMes,
-      },
-      take: 5,
-      orderBy: { data_pedido: "desc" },
-      include: { mscliente: { select: { nome: true } } },
-    });
-
-    // Estoque Baixo (Global, não depende de data)
-    const estoqueBaixoList = await prisma.$queryRaw`
-      SELECT p.uuid, p.descricao, p.estoque_minimo, COALESCE(SUM(e.quantidade), 0) as saldo
-      FROM msproduto p
-      LEFT JOIN msestoque e ON p.codproduto = e.codproduto
-      WHERE p.ativo = 'S'
-      GROUP BY p.codproduto
-      HAVING saldo <= p.estoque_minimo
-      LIMIT 10
-    `;
-
-    // Produtos mais vendidos (Período)
+    // ==========================================
+    // 3. PRODUTOS MAIS VENDIDOS (Período)
+    // ==========================================
     const maisVendidos = await prisma.mspedido_item.groupBy({
       by: ['codproduto'],
-      where: {
-        mspedido: {
-          data_pedido: dataPedidoConditionMes,
-          status: { not: "CANCELADO" }
-        }
-      },
+      where: { mspedido: { data_pedido: dataPedidoCondition, status: { not: "CANCELADO" } } },
       _sum: { quantidade: true },
       orderBy: { _sum: { quantidade: 'desc' } },
       take: 5,
     });
     
     const produtosDetalhes = await prisma.msproduto.findMany({
-      where: { codproduto: { in: maisVendidos.map(i => i.codproduto) } }
+      where: { codproduto: { in: maisVendidos.map(i => i.codproduto) } },
+      select: { codproduto: true, descricao: true }
     });
 
     const maisVendidosFormatado = maisVendidos.map(item => {
@@ -111,14 +138,151 @@ export const getDashboardMetrics = async (req, res) => {
       };
     });
 
+    // ==========================================
+    // 4. GRÁFICO DE VENDAS (Últimos 15 dias)
+    // ==========================================
+    const quinzeDiasAtras = new Date(hoje);
+    quinzeDiasAtras.setDate(quinzeDiasAtras.getDate() - 14);
+
+    const vendasGrafico = await prisma.mspedido.findMany({
+      where: { data_pedido: { gte: quinzeDiasAtras }, status: { not: "CANCELADO" } },
+      select: { data_pedido: true, valor_total: true }
+    });
+
+    const mapaGrafico = {};
+    for (let i = 14; i >= 0; i--) {
+      const d = new Date(hoje);
+      d.setDate(d.getDate() - i);
+      const k = d.toISOString().split('T')[0];
+      mapaGrafico[k] = 0;
+    }
+
+    vendasGrafico.forEach(v => {
+      const vDate = new Date(v.data_pedido);
+      // Ajuste fuso do brasil para bater o dia
+      vDate.setHours(vDate.getHours() - 3);
+      const k = vDate.toISOString().split('T')[0];
+      if (mapaGrafico[k] !== undefined) {
+        mapaGrafico[k] += Number(v.valor_total || 0);
+      }
+    });
+
+    const graficoFinal = Object.keys(mapaGrafico).map(data => ({
+      data,
+      total: mapaGrafico[data]
+    }));
+
+    // ==========================================
+    // 5. PRODUTOS SEM GIRO (30, 60, 90 dias)
+    // ==========================================
+    // Para simplificar no Prisma sem QueryRaw complexas com JOIN, 
+    // buscamos a data da ultima venda de cada produto que tem estoque
+    const estoqueDisponivel = await prisma.$queryRaw`
+      SELECT p.codproduto, p.descricao, p.estoque_minimo, COALESCE(SUM(e.quantidade), 0) as saldo
+      FROM msproduto p
+      LEFT JOIN msestoque e ON p.codproduto = e.codproduto
+      WHERE p.ativo = 'S'
+      GROUP BY p.codproduto
+      HAVING saldo > 0
+    `;
+
+    // Busca a ultima venda de produtos com estoque
+    const ultimasVendasProd = await prisma.mspedido_item.groupBy({
+      by: ['codproduto'],
+      _max: { 'mspedido': { data_pedido: true } } // Isso não funciona direto no prisma groupBy se nao for aggregate.
+    }).catch(() => []); 
+    
+    // Vamos usar queryRaw para facilitar o Sem Giro
+    const semGiroList = await prisma.$queryRaw`
+      SELECT p.codproduto, p.descricao, MAX(ped.data_pedido) as ultima_venda, COALESCE(SUM(e.quantidade), 0) as saldo
+      FROM msproduto p
+      LEFT JOIN msestoque e ON p.codproduto = e.codproduto
+      LEFT JOIN mspedido_item pi ON pi.codproduto = p.codproduto
+      LEFT JOIN mspedido ped ON ped.numpedido = pi.numpedido AND ped.status != 'CANCELADO'
+      WHERE p.ativo = 'S'
+      GROUP BY p.codproduto
+      HAVING saldo > 0
+    `;
+
+    const produtosSemGiro = {
+      "30d": [],
+      "60d": [],
+      "90d": []
+    };
+
+    const trintaDiasAtras = new Date(hoje); trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    const sessentaDiasAtras = new Date(hoje); sessentaDiasAtras.setDate(sessentaDiasAtras.getDate() - 60);
+    const noventaDiasAtras = new Date(hoje); noventaDiasAtras.setDate(noventaDiasAtras.getDate() - 90);
+
+    for (const p of semGiroList) {
+      // Se nunca vendeu, consideramos a data mais antiga possível
+      const ultimaVenda = p.ultima_venda ? new Date(p.ultima_venda) : new Date(0);
+      
+      const item = { descricao: p.descricao, saldo: Number(p.saldo), ultima_venda: p.ultima_venda };
+      if (ultimaVenda < noventaDiasAtras) {
+        produtosSemGiro["90d"].push(item);
+      } else if (ultimaVenda < sessentaDiasAtras) {
+        produtosSemGiro["60d"].push(item);
+      } else if (ultimaVenda < trintaDiasAtras) {
+        produtosSemGiro["30d"].push(item);
+      }
+    }
+
+    // ==========================================
+    // 6. ESTOQUE BAIXO
+    // ==========================================
+    const estoqueBaixoList = await prisma.$queryRaw`
+      SELECT p.codproduto, p.descricao, p.estoque_minimo, COALESCE(SUM(e.quantidade), 0) as saldo
+      FROM msproduto p
+      LEFT JOIN msestoque e ON p.codproduto = e.codproduto
+      WHERE p.ativo = 'S'
+      GROUP BY p.codproduto
+      HAVING saldo <= p.estoque_minimo
+      LIMIT 10
+    `;
+
+    // ==========================================
+    // 7. ÚLTIMOS PEDIDOS
+    // ==========================================
+    const ultimosPedidos = await prisma.mspedido.findMany({
+      take: 5,
+      orderBy: { data_pedido: "desc" },
+      include: { mscliente: { select: { nome: true } } },
+    });
+
+    // Enviar resposta
     res.json({
-      vendaDia: vendaDiaResult._sum.valor_total || 0,
-      vendaMes: vendaMesResult._sum.valor_total || 0,
-      clientesCadastrados: clientesCount,
-      produtosCadastrados: produtosCount,
-      ultimasVendas,
-      estoqueBaixo: estoqueBaixoList,
-      maisVendidos: maisVendidosFormatado
+      faturamento: {
+        hoje: faturamentoHoje,
+        mes: Number(pedidosMes._sum.valor_total || 0),
+        ano: Number(pedidosAno._sum.valor_total || 0)
+      },
+      pedidos: {
+        hoje: pedidosHoje.length,
+        emAberto: pedidosEmAbertoHoje,
+        finalizados: pedidosFinalizadosHoje
+      },
+      ticketMedio,
+      lucroBrutoHoje,
+      clientesBase,
+      clientesNovosMes,
+      kitsVendidosHoje: qtdKitsHoje,
+      topClientes: topClientesFormatado,
+      produtosSemGiro,
+      graficoVendas: graficoFinal,
+      maisVendidos: maisVendidosFormatado,
+      ultimosPedidos: ultimosPedidos.map(u => ({
+        numpedido: u.numpedido,
+        cliente: u.mscliente?.nome || "Balcão",
+        valor_total: u.valor_total,
+        status: u.status,
+        data_pedido: u.data_pedido
+      })),
+      estoqueBaixo: estoqueBaixoList.map(e => ({
+        descricao: e.descricao,
+        saldo: Number(e.saldo),
+        minimo: e.estoque_minimo
+      }))
     });
 
   } catch (error) {
@@ -126,3 +290,8 @@ export const getDashboardMetrics = async (req, res) => {
     res.status(500).json({ error: "Erro ao buscar métricas do dashboard." });
   }
 };
+
+
+
+
+

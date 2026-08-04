@@ -1,5 +1,6 @@
 import prisma from "../prismaClient.js"
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from "../utils/cloudinary.js"
+import { logAuditoria, logAlteracoes } from "../services/auditService.js"
 
 
 
@@ -86,6 +87,16 @@ export async function criarProdutos(req, res) {
         imagem_public_id
       }
     })
+
+    await logAuditoria({
+      acao: "CRIAR",
+      tabela: "msproduto",
+      registro_id: produto.codproduto,
+      campo: null,
+      valor_antigo: null,
+      valor_novo: JSON.stringify(produto)
+    })
+
     res.json(produto)
   } catch (error) {
     console.error("Erro completo ao criar produto:", error)
@@ -175,6 +186,9 @@ export async function alterarProdutos(req, res) {
       data: dados,
 
     })
+
+    await logAlteracoes("msproduto", codproduto, produtoAtual, produtoAtualizado);
+
     res.json(produtoAtualizado)
   } catch (error) {
     console.error("Erro completo ao alterar produto:", error)
@@ -210,3 +224,4 @@ export async function alterarStatusProduto(req, res) {
     res.status(500).json({ erro: "Erro ao alterar status do produto" });
   }
 }
+

@@ -226,7 +226,8 @@ export async function criarPedido(req, res) {
         });
       }
 
-      const valor_total_venda = subtotalGlobal - descGlobal;
+      const freteGlobal = parseFloat(valor_frete) || 0;
+      const valor_total_venda = subtotalGlobal - descGlobal + freteGlobal;
 
       // 3. Criar o Cabeçalho do Pedido
       const pedido = await tx.mspedido.create({
@@ -238,6 +239,7 @@ export async function criarPedido(req, res) {
           codfilial: filial,
           data_pedido: new Date(),
           subtotal: subtotalGlobal,
+          valor_frete: freteGlobal,
           desconto: descGlobal,
           valor_total: valor_total_venda,
           status: finalStatus,
@@ -318,7 +320,7 @@ export async function criarPedido(req, res) {
     res.json(result);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: error.message || "Erro ao criar pedido" });
+    console.error("ERRO CRIAR PEDIDO:", error); res.status(500).json({ erro: error.message || "Erro ao criar pedido" });
   }
 }
 
@@ -505,7 +507,8 @@ export async function atualizarPedido(req, res) {
         }
       }
 
-      const valor_total_venda = subtotalGlobal - descGlobal;
+      const freteGlobal = parseFloat(valor_frete) || 0;
+      const valor_total_venda = subtotalGlobal - descGlobal + freteGlobal;
 
       // Inserir os itens todos
       const todosOsItensParaGravar = [...avulsosProcessados, ...itensDeKits];
@@ -523,6 +526,7 @@ export async function atualizarPedido(req, res) {
           codfilial: filial,
           status: status || "EM_ABERTO",
           subtotal: subtotalGlobal,
+          valor_frete: freteGlobal,
           desconto: descGlobal,
           valor_total: valor_total_venda,
           observacoes: observacoes || null,
@@ -559,3 +563,5 @@ export async function removerItem(req, res) {
 export async function adicionarItem(req, res) {
   res.status(400).json({ error: "Deprecated na API nova. Atualize o pedido completo." });
 }
+
+
