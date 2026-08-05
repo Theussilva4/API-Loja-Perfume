@@ -153,6 +153,7 @@ export async function criarPedido(req, res) {
       formaPagamento,
       parcelas,
       desconto,
+      valor_frete,
       observacoes,
       status, // EM_DIGITACAO ou FINALIZADO
       produtos = [], // avulsos
@@ -404,6 +405,7 @@ export async function atualizarPedido(req, res) {
       formaPagamento,
       parcelas,
       desconto,
+      valor_frete,
       observacoes,
       produtos = [], // avulsos
       kits = []      // kits comerciais
@@ -563,5 +565,6 @@ export async function removerItem(req, res) {
 export async function adicionarItem(req, res) {
   res.status(400).json({ error: "Deprecated na API nova. Atualize o pedido completo." });
 }
+
 
 
