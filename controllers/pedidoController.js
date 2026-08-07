@@ -218,7 +218,7 @@ export async function criarPedido(req, res) {
       for (const k of kits) {
         const kitDB = await tx.mskit.findUnique({
           where: { id: Number(k.kitId) },
-          include: { itens: { include: { produto: { include: { msprecificacao: true } } } } }
+          include: { itens: { include: { produto: { include: { mstabela_preco: { where: { ativo: 'S' } } } } } } }
         });
 
         if (!kitDB) throw new Error(`Kit ${k.kitId} não encontrado`);
@@ -229,7 +229,7 @@ export async function criarPedido(req, res) {
 
         let somaPrecosOriginais = 0;
         kitDB.itens.forEach(ki => {
-          somaPrecosOriginais += Number(ki.produto.msprecificacao?.precoBase || 0) * ki.quantidade;
+          somaPrecosOriginais += Number(ki.produto.mstabela_preco?.[0]?.preco_venda || 0) * ki.quantidade;
         });
 
         const valorOriginalTotal = somaPrecosOriginais * qtdKitVendido;
@@ -299,7 +299,7 @@ export async function criarPedido(req, res) {
             // Último item fica com a diferença para evitar erro de centavos
             valorTotalItemRateado = kp.valor_kit - somaRateio;
           } else {
-            const precoOriginal = Number(comp.produto.msprecificacao?.precoBase || 0) * qtdItemTotal;
+            const precoOriginal = Number(comp.produto.mstabela_preco?.[0]?.preco_venda || 0) * qtdItemTotal;
             valorTotalItemRateado = Number((precoOriginal * fator).toFixed(2));
             somaRateio += valorTotalItemRateado;
           }
@@ -472,7 +472,7 @@ export async function atualizarPedido(req, res) {
       for (const k of kits) {
         const kitDB = await tx.mskit.findUnique({
           where: { id: Number(k.kitId) },
-          include: { itens: { include: { produto: { include: { msprecificacao: true } } } } }
+          include: { itens: { include: { produto: { include: { mstabela_preco: { where: { ativo: 'S' } } } } } } }
         });
 
         if (!kitDB) throw new Error(`Kit ${k.kitId} não encontrado`);
@@ -483,7 +483,7 @@ export async function atualizarPedido(req, res) {
 
         let somaPrecosOriginais = 0;
         kitDB.itens.forEach(ki => {
-          somaPrecosOriginais += Number(ki.produto.msprecificacao?.precoBase || 0) * ki.quantidade;
+          somaPrecosOriginais += Number(ki.produto.mstabela_preco?.[0]?.preco_venda || 0) * ki.quantidade;
         });
 
         const valorOriginalTotal = somaPrecosOriginais * qtdKitVendido;
@@ -514,7 +514,7 @@ export async function atualizarPedido(req, res) {
           if (i === kitDB.itens.length - 1) {
             valorTotalItemRateado = valorKitTotal - somaRateio;
           } else {
-            const precoOriginal = Number(comp.produto.msprecificacao?.precoBase || 0) * qtdItemTotal;
+            const precoOriginal = Number(comp.produto.mstabela_preco?.[0]?.preco_venda || 0) * qtdItemTotal;
             valorTotalItemRateado = Number((precoOriginal * fator).toFixed(2));
             somaRateio += valorTotalItemRateado;
           }
