@@ -132,12 +132,12 @@ export async function listarPedidos(req, res) {
     let where = {};
     
     if (dataInicio && dataFim) {
-      where.data_venda = {
+      where.data_pedido = {
         gte: new Date(`${dataInicio}T00:00:00.000-03:00`),
         lte: new Date(`${dataFim}T23:59:59.999-03:00`)
       };
     } else if (dataInicio) {
-      where.data_venda = {
+      where.data_pedido = {
         gte: new Date(`${dataInicio}T00:00:00.000-03:00`),
         lte: new Date(`${dataInicio}T23:59:59.999-03:00`)
       };
