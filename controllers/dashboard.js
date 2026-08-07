@@ -41,7 +41,15 @@ export const getDashboardMetrics = async (req, res) => {
 
     const pedidosHoje = await prisma.mspedido.findMany({
       where: { data_pedido: { gte: hoje, lt: fimHoje }, status: { not: "CANCELADO" } },
-      include: { mspedido_item: true }
+      include: {
+        mspedido_item: {
+          include: {
+            msproduto: {
+              include: { mstabela_preco: { where: { ativo: "S" } } }
+            }
+          }
+        }
+      }
     });
 
     const pedidosMes = await prisma.mspedido.aggregate({
@@ -70,8 +78,8 @@ export const getDashboardMetrics = async (req, res) => {
       }
 
       for (const item of ped.mspedido_item) {
-        const pVenda = Number(item.preco_venda || 0);
-        const pCusto = Number(item.preco_custo || 0);
+        const pVenda = Number(item.preco_unitario || 0);
+        const pCusto = Number(item.msproduto?.mstabela_preco?.[0]?.preco_custo || 0);
         const qtd = Number(item.quantidade || 0);
         lucroBrutoHoje += (pVenda - pCusto) * qtd;
       }
