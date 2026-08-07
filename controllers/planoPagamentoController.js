@@ -18,7 +18,7 @@ export async function listarPlanosPagamento(req, res) {
 
 export async function criarPlanoPagamento(req, res) {
   try {
-    const { descricao, tem_acrescimo, taxa_acrescimo, max_parcelas, valor_minimo_parcela, regras_parcelamento } = req.body;
+    const { descricao, tipo_pagamento, tem_acrescimo, taxa_acrescimo, max_parcelas, valor_minimo_parcela, regras_parcelamento } = req.body;
 
     // validação
     if (!descricao) {
@@ -30,6 +30,7 @@ export async function criarPlanoPagamento(req, res) {
     const plano = await prisma.MSPLANOPAGAMENTO.create({
       data: {
         DESCRICAO: descricao,
+        tipo_pagamento: tipo_pagamento || "A_VISTA",
         tem_acrescimo: tem_acrescimo || false,
         taxa_acrescimo: taxa_acrescimo || 0,
         max_parcelas: max_parcelas || 1,
@@ -52,7 +53,7 @@ export async function criarPlanoPagamento(req, res) {
 export async function atualizarPlanoPagamento(req, res) {
   try {
     const { id } = req.params;
-    const { descricao, tem_acrescimo, taxa_acrescimo, max_parcelas, valor_minimo_parcela, regras_parcelamento } = req.body;
+    const { descricao, tipo_pagamento, tem_acrescimo, taxa_acrescimo, max_parcelas, valor_minimo_parcela, regras_parcelamento } = req.body;
 
     if (!descricao) {
       return res.status(400).json({ erro: "Descrição é obrigatória" });
@@ -62,6 +63,7 @@ export async function atualizarPlanoPagamento(req, res) {
       where: { CODPLPAG: Number(id) },
       data: {
         DESCRICAO: descricao,
+        tipo_pagamento: tipo_pagamento || "A_VISTA",
         tem_acrescimo: tem_acrescimo || false,
         taxa_acrescimo: taxa_acrescimo || 0,
         max_parcelas: max_parcelas || 1,

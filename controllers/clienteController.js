@@ -25,6 +25,7 @@ export async function criarClientes(req, res) {
         bairro: req.body.bairro || "",
         whatsapp: req.body.whatsapp || null,
         observacoes: req.body.observacoes || null,
+        data_nascimento: req.body.data_nascimento ? new Date(req.body.data_nascimento) : null,
         ativo: req.body.ativo || "S",
         data_cadastro: new Date(),
         cidade: req.body.cidade || "",

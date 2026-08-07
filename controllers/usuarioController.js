@@ -26,6 +26,7 @@ export async function alterarUsuario(req, res) {
     );
     res.json({ sucesso: true, dados: usuario });
   } catch (error) {
+    console.error("ERRO DETALHADO UPDATE:", error);
     res.status(400).json({ sucesso: false, erro: error.message });
   }
 }

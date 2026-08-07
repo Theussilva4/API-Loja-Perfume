@@ -1,6 +1,4 @@
-import prisma from "../prismaClient.js"
-
-
+﻿import prisma from "../prismaClient.js"
 
 export async function listarVendedor(req, res) {
   try {
@@ -14,18 +12,34 @@ export async function listarVendedor(req, res) {
 
 export async function criarVendedor(req, res) {
   try {
+    const {
+      nome, cpf, ativo, codfilial, telefone, email,
+      comissao_padrao, meta_vendas, data_nascimento,
+      endereco, cidade, uf
+    } = req.body;
+
+    if (!nome) {
+      return res.status(400).json({ erro: "Nome é obrigatório" });
+    }
+
     const vendedor = await prisma.msvendedor.create({
       data: {
-        nome: req.body.nome,
-        cpf: req.body.cpf_cnpj || "",
-        telefone: req.body.telefone,
-        ativo: req.body.ativo || "S",
-        data_cadastro: new Date(),
-       
-       
+        nome,
+        cpf: cpf ? cpf.replace(/\D/g, '') : null,
+        ativo: ativo || "S",
+        codfilial: codfilial ? Number(codfilial) : null,
+        telefone: telefone || null,
+        email: email || null,
+        comissao_padrao: comissao_padrao ? Number(comissao_padrao) : null,
+        meta_vendas: meta_vendas ? Number(meta_vendas) : null,
+        data_nascimento: data_nascimento ? new Date(data_nascimento) : null,
+        endereco: endereco || null,
+        cidade: cidade || null,
+        uf: uf || null,
+        data_criacao: new Date()
       }
     })
-    res.json(Vendedor)
+    res.json(vendedor)
   } catch (error) {
     console.error(error)
     res.status(500).json({ erro: "Erro ao criar Vendedor" })
@@ -36,26 +50,35 @@ export async function alterarVendedor(req, res) {
   const { codvendedor } = req.params;
   const { ...dados } = req.body;
 
-  if (!codVendedor) {
+  if (!codvendedor) {
     return res.status(400).json({ erro: "O código do Vendedor é obrigatório" });
   }
+  
   // Remover campos que não devem ser atualizados
-  const camposProibidos = ["data_cadastro", "ativo"];
+  const camposProibidos = ["data_criacao", "ativo", "codvendedor", "uuid", "created_at", "updated_at"];
   camposProibidos.forEach(campo => delete dados[campo]);
+  
+  if (dados.cpf) dados.cpf = dados.cpf.replace(/\D/g, '');
+  if (dados.data_nascimento) dados.data_nascimento = new Date(dados.data_nascimento);
+  if (dados.codfilial) dados.codfilial = Number(dados.codfilial);
+  if (dados.comissao_padrao) dados.comissao_padrao = Number(dados.comissao_padrao);
+  if (dados.meta_vendas) dados.meta_vendas = Number(dados.meta_vendas);
+
   try {
-    const VendedorAtualizado = await prisma.msVendedor.update({
+    const vendedorAtualizado = await prisma.msvendedor.update({
       where: { codvendedor: Number(codvendedor) },
       data: dados,
-
     })
     res.json(vendedorAtualizado)
   } catch (error) {
+    console.error(error);
     res.status(500).json({ erro: "Erro ao alterar Vendedor" })
   }
 }
+
 export async function alterarStatusVendedor(req, res) {
   const { codvendedor } = req.params;
-  const { ativo } = req.body; // espera { "ativo": "S" } ou { "ativo": "N" }
+  const { ativo } = req.body;
 
   if (!codvendedor) {
     return res.status(400).json({ erro: "O código do Vendedor é obrigatório" });
@@ -67,8 +90,8 @@ export async function alterarStatusVendedor(req, res) {
 
   try {
     const vendedorAtualizado = await prisma.msvendedor.update({
-      where: { codVendedor: Number(codVendedor) },
-      data: { ativo }, // atualiza apenas o campo ativo
+      where: { codvendedor: Number(codvendedor) },
+      data: { ativo },
     });
     res.json(vendedorAtualizado);
   } catch (error) {
@@ -79,3 +102,4 @@ export async function alterarStatusVendedor(req, res) {
     res.status(500).json({ erro: "Erro ao alterar status do Vendedor" });
   }
 }
+

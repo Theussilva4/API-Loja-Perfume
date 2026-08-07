@@ -11,7 +11,8 @@ export async function listar() {
       tipo_usuario: true,
       ativo: true,
       codfilial: true,
-      ultimo_login: true
+      ultimo_login: true,
+      codvendedor: true
     }
   });
 }
@@ -26,7 +27,8 @@ export async function criar(dados) {
     codfilial,
     cpf,
     telefone,
-    data_nascimento
+    data_nascimento,
+    codvendedor
   } = dados;
 
   if (!nome || !login || !senha) {
@@ -60,21 +62,10 @@ export async function criar(dados) {
       telefone: telefone || null,
       data_nascimento: data_nascimento ? new Date(data_nascimento) : null,
       ativo: "S",
-      data_criacao: new Date()
+      data_criacao: new Date(),
+      codvendedor: codvendedor ? Number(codvendedor) : null
     }
   });
-
-  if (tipo_usuario === "VENDEDOR") {
-    await prisma.msvendedor.create({
-      data: {
-        nome,
-        cpf: cpf || null,
-        telefone: telefone || null,
-        ativo: "S",
-        data_criacao: new Date()
-      }
-    });
-  }
 
   delete usuario.senha_hash;
   return usuario;
@@ -95,13 +86,27 @@ export async function alterar(codusur, dados) {
     delete dados.senha;
   }
 
+  if (dados.data_nascimento !== undefined) {
+    dados.data_nascimento = dados.data_nascimento ? new Date(dados.data_nascimento) : null;
+  }
+
+  if (dados.cpf === "") dados.cpf = null;
+  if (dados.telefone === "") dados.telefone = null;
+  if (dados.email === "") dados.email = null;
+
   const camposPermitidos = [
     "nome",
     "email",
     "telefone",
+    "cpf",
+    "data_nascimento",
+    "codfilial",
     "codrca",
+    "codvendedor",
+    "ativo",
     "senha_hash",
-    "senha_alterada"
+    "senha_alterada",
+    "tipo_usuario"
   ];
 
   Object.keys(dados).forEach((key) => {

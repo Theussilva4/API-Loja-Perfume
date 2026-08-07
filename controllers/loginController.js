@@ -25,7 +25,8 @@ export async function login(req, res) {
   const token = jwt.sign(
     {
       id: usuario.codusur,
-      tipo: usuario.tipo_usuario
+      tipo: usuario.tipo_usuario,
+      codvendedor: usuario.codvendedor
     },
     "SEGREDO",
     { expiresIn: "1d" }
@@ -37,7 +38,8 @@ export async function login(req, res) {
       id: usuario.codusur,
       nome: usuario.nome,          // ⚠️ CONFERE esse campo no banco
       email: usuario.email,
-      tipo: usuario.tipo_usuario
+      tipo: usuario.tipo_usuario,
+      codvendedor: usuario.codvendedor
     },
     forceChangePassword
   });
