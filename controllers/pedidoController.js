@@ -160,7 +160,7 @@ export async function listarPedidos(req, res) {
     res.json(pedidos);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao listar pedidos" });
+    res.status(500).json({ erro: "Erro ao listar pedidos", details: error.message });
   }
 }
 
