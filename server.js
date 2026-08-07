@@ -22,6 +22,7 @@ import compraRoutes from "./routes/compra.js"
 import dashboardRoutes from "./routes/dashboard.js"
 import precificacaoRoutes from "./routes/precificacao.js"
 import configuracaoRoutes from "./routes/configuracao.js"
+import { sendTelegramAlert } from "./utils/telegram.js"
 
 const app = express()
 
@@ -36,6 +37,41 @@ app.use(cors({
 }))
 
 app.use(express.json())
+
+// Middleware para interceptar respostas com erro 500+ e enviar para o Telegram
+app.use((req, res, next) => {
+  const originalJson = res.json;
+  const originalSend = res.send;
+  
+  const handleIntercept = (body) => {
+    if (res.statusCode >= 500) {
+      let errorMessage = typeof body === 'string' ? body : JSON.stringify(body, null, 2);
+      // Trunca a mensagem caso ela seja muito grande para o telegram (limite ~4096 caracteres)
+      if (errorMessage.length > 2000) {
+        errorMessage = errorMessage.substring(0, 2000) + '... [TRUNCATED]';
+      }
+
+      const mensagem = `🚨 <b>ERRO NA API</b> 🚨\n\n` +
+        `<b>Rota:</b> ${req.method} ${req.originalUrl}\n` +
+        `<b>Status:</b> ${res.statusCode}\n\n` +
+        `<b>Detalhes:</b>\n<pre>${errorMessage}</pre>`;
+        
+      sendTelegramAlert(mensagem);
+    }
+  };
+
+  res.json = function (body) {
+    handleIntercept(body);
+    return originalJson.apply(this, arguments);
+  };
+  
+  res.send = function (body) {
+    handleIntercept(body);
+    return originalSend.apply(this, arguments);
+  };
+
+  next();
+});
 
 // Rotas da API
 app.use("/api/produtos", produtosRoutes)
@@ -56,8 +92,13 @@ app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/comercial", precificacaoRoutes)
 app.use("/api/configuracoes", configuracaoRoutes)
 
-
-
+// Rota de teste para validar o Telegram
+app.get("/api/teste-erro", (req, res) => {
+  res.status(500).json({
+    erro: "Este é um erro de teste disparado propositalmente para validar a integração com o Telegram.",
+    details: "Se você recebeu isso no seu Telegram, a integração está funcionando perfeitamente 🚀"
+  });
+});
 
 // Servir o frontend buildado
 const __filename = fileURLToPath(import.meta.url)
