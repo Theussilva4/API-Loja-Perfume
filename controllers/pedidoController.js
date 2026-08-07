@@ -147,8 +147,13 @@ export async function listarPedidos(req, res) {
       where,
       orderBy: { numpedido: "desc" },
       include: {
-        mscliente: { select: { nome: true } },
-        mspedido_item: true,
+        mscliente: { select: { nome: true, telefone1: true } },
+        msusuario_mspedido_codusur_vendedorTomsusuario: { select: { nome: true } },
+        mspedido_item: {
+          include: {
+            msproduto: { select: { descricao: true } }
+          }
+        },
         msusuario_mspedido_codusur_cancelouTomsusuario: { select: { nome: true } }
       }
     });
