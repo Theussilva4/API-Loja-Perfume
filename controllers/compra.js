@@ -63,13 +63,19 @@ export const createCompra = async (req, res) => {
       if (status === "FINALIZADA") {
         for (const item of itens) {
           // Busca informações atuais do produto antes de alterar o estoque
-          const produtoInfo = await tx.msproduto.findUnique({
-            where: { codproduto: item.codproduto },
-            include: {
-              msestoque: { where: { codfilial: codfilial || 1 } },
-              mstabela_preco: { where: { ativo: 'S' } }
-            }
-          });
+          const [tabelaPreco, estoqueAtual] = await Promise.all([
+            tx.mstabela_preco.findFirst({
+              where: { codproduto: item.codproduto, ativo: 'S' }
+            }),
+            tx.msestoque.findUnique({
+              where: {
+                codproduto_codfilial: {
+                  codproduto: item.codproduto,
+                  codfilial: codfilial || 1
+                }
+              }
+            })
+          ]);
 
           // Cria movimento
           await tx.msmov_estoque.create({
@@ -132,8 +138,8 @@ export const createCompra = async (req, res) => {
           });
           
           // Atualiza custo do produto seguindo a regra: Max(Media Ponderada, Ultima Entrada)
-          const currentQuantity = produtoInfo?.msestoque?.[0]?.quantidade || 0;
-          const currentCost = Number(produtoInfo?.mstabela_preco?.[0]?.preco_custo || 0);
+          const currentQuantity = estoqueAtual?.quantidade || 0;
+          const currentCost = Number(tabelaPreco?.preco_custo || 0);
           
           let novoCusto = item.custo_unitario;
           if (currentQuantity > 0) {
@@ -144,9 +150,9 @@ export const createCompra = async (req, res) => {
             novoCusto = Math.max(mediaPonderada, item.custo_unitario);
           }
 
-          if (produtoInfo?.mstabela_preco?.[0]) {
+          if (tabelaPreco) {
             await tx.mstabela_preco.update({
-              where: { codtabela: produtoInfo.mstabela_preco[0].codtabela },
+              where: { codtabela: tabelaPreco.codtabela },
               data: { preco_custo: Number(novoCusto.toFixed(2)) }
             });
           }
