@@ -64,50 +64,67 @@ export async function listarMovimentacoesSaida(req, res) {
 
 export async function registrarEntradaManual(req, res) {
   try {
-    const { codproduto, codfilial, quantidade, origem } = req.body;
-
-    if (!codproduto || !quantidade || quantidade <= 0) {
-      return res.status(400).json({ erro: "Produto e quantidade válidos são obrigatórios" });
+    const { filialDestino, itens, origem } = req.body;
+    
+    if (!filialDestino || !itens || !itens.length) {
+      return res.status(400).json({ erro: "Filial destino e itens são obrigatórios" });
     }
 
-    const filialId = codfilial ? Number(codfilial) : 1;
+    const { randomUUID } = require("crypto");
+    const ajusteUuid = randomUUID();
 
-    const result = await prisma.$transaction(async (tx) => {
-      const novaMov = await tx.msmov_estoque.create({
-        data: {
-          codproduto: Number(codproduto),
-          codfilial: filialId,
-          tipo: "ENTRADA",
-          origem: origem || "AJUSTE",
-          quantidade: Number(quantidade)
-        }
-      });
-
-      await tx.msestoque.upsert({
-        where: {
-          codproduto_codfilial: {
-            codproduto: Number(codproduto),
-            codfilial: filialId
+    await prisma.$transaction(async (tx) => {
+      for (const item of itens) {
+        // Encontrar ou criar registro de estoque
+        const estoque = await tx.msestoque.findUnique({
+          where: {
+            codproduto_codfilial: {
+              codproduto: item.codproduto,
+              codfilial: filialDestino
+            }
           }
-        },
-        update: {
-          quantidade: { increment: Number(quantidade) },
-          atualizado_em: new Date()
-        },
-        create: {
-          codproduto: Number(codproduto),
-          codfilial: filialId,
-          quantidade: Number(quantidade)
-        }
-      });
+        });
 
-      return novaMov;
+        if (estoque) {
+          await tx.msestoque.update({
+            where: {
+              codproduto_codfilial: {
+                codproduto: item.codproduto,
+                codfilial: filialDestino
+              }
+            },
+            data: {
+              quantidade: estoque.quantidade + item.quantidade
+            }
+          });
+        } else {
+          await tx.msestoque.create({
+            data: {
+              codproduto: item.codproduto,
+              codfilial: filialDestino,
+              quantidade: item.quantidade
+            }
+          });
+        }
+
+        // Registrar movimentação individual com UUID comum
+        await tx.msmov_estoque.create({
+          data: {
+            codproduto: item.codproduto,
+            codfilial: filialDestino,
+            tipo: "ENTRADA",
+            origem: origem || "AJUSTE",
+            quantidade: item.quantidade,
+            uuid: ajusteUuid
+          }
+        });
+      }
     });
 
-    res.json(result);
+    res.status(201).json({ message: "Ajustes de estoque registrados com sucesso." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao registrar entrada manual" });
+    res.status(500).json({ error: "Erro ao registrar entradas de estoque." });
   }
 }
 
@@ -128,12 +145,28 @@ export async function listarMovimentacoesEntrada(req, res) {
       return acc;
     }, {});
 
-    const entradasComProduto = entradas.map(e => ({
-      ...e,
-      produto: produtosMap[e.codproduto] || null
-    }));
+    const grouped = entradas.reduce((acc, mov) => {
+      const key = mov.uuid || mov.id.toString();
+      if (!acc[key]) {
+        acc[key] = {
+          id: mov.id,
+          uuid: mov.uuid,
+          data_mov: mov.data_mov,
+          codfilial: mov.codfilial,
+          origem: mov.origem,
+          itens: []
+        };
+      }
+      acc[key].itens.push({
+        ...mov,
+        produto: produtosMap[mov.codproduto] || null
+      });
+      return acc;
+    }, {});
 
-    res.status(200).json(entradasComProduto);
+    const agrupadosArray = Object.values(grouped).sort((a, b) => new Date(b.data_mov) - new Date(a.data_mov));
+
+    res.status(200).json(agrupadosArray);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Erro ao listar movimentações de entrada." });
