@@ -1,10 +1,11 @@
 import express from "express"
-import { listarEstoque, alterarEstoque, listarMovimentacoesSaida, registrarSaidaManual, cancelarSaidaManual, extratoProduto, registrarEntradaManual } from "../controllers/estoqueController.js"
+import { listarEstoque, alterarEstoque, listarMovimentacoesSaida, listarMovimentacoesEntrada, registrarSaidaManual, cancelarSaidaManual, extratoProduto, registrarEntradaManual } from "../controllers/estoqueController.js"
 
 const router = express.Router()
 
 router.get("/", listarEstoque)
 router.get("/saidas", listarMovimentacoesSaida)
+router.get("/entradas", listarMovimentacoesEntrada)
 router.post("/saidas", registrarSaidaManual)
 router.post("/entradas", registrarEntradaManual)
 router.post("/saidas/:id/cancelar", cancelarSaidaManual)

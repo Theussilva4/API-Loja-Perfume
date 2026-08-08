@@ -111,6 +111,35 @@ export async function registrarEntradaManual(req, res) {
   }
 }
 
+export async function listarMovimentacoesEntrada(req, res) {
+  try {
+    const entradas = await prisma.msmov_estoque.findMany({
+      where: { tipo: "ENTRADA", origem: "AJUSTE" },
+      orderBy: { data_mov: "desc" },
+    });
+
+    const codigosProdutos = [...new Set(entradas.map(e => e.codproduto))];
+    const produtos = await prisma.msproduto.findMany({
+      where: { codproduto: { in: codigosProdutos } }
+    });
+
+    const produtosMap = produtos.reduce((acc, p) => {
+      acc[p.codproduto] = p;
+      return acc;
+    }, {});
+
+    const entradasComProduto = entradas.map(e => ({
+      ...e,
+      produto: produtosMap[e.codproduto] || null
+    }));
+
+    res.status(200).json(entradasComProduto);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao listar movimentações de entrada." });
+  }
+}
+
 export async function registrarSaidaManual(req, res) {
   try {
     const { codproduto, codfilial, quantidade, origem } = req.body;
