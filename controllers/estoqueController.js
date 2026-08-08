@@ -1,5 +1,6 @@
 import prisma from "../prismaClient.js"
 import { logAuditoria } from "../services/auditService.js"
+import { randomUUID } from "crypto"
 
 export async function listarEstoque(req, res) {
   try {
@@ -79,7 +80,6 @@ export async function registrarEntradaManual(req, res) {
       return res.status(400).json({ erro: "Filial destino e itens são obrigatórios" });
     }
 
-    const { randomUUID } = require("crypto");
     const ajusteUuid = randomUUID();
 
     await prisma.$transaction(async (tx) => {
