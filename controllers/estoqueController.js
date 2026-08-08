@@ -62,6 +62,55 @@ export async function listarMovimentacoesSaida(req, res) {
   }
 }
 
+export async function registrarEntradaManual(req, res) {
+  try {
+    const { codproduto, codfilial, quantidade, origem } = req.body;
+
+    if (!codproduto || !quantidade || quantidade <= 0) {
+      return res.status(400).json({ erro: "Produto e quantidade válidos são obrigatórios" });
+    }
+
+    const filialId = codfilial ? Number(codfilial) : 1;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const novaMov = await tx.msmov_estoque.create({
+        data: {
+          codproduto: Number(codproduto),
+          codfilial: filialId,
+          tipo: "ENTRADA",
+          origem: origem || "AJUSTE",
+          quantidade: Number(quantidade)
+        }
+      });
+
+      await tx.msestoque.upsert({
+        where: {
+          codproduto_codfilial: {
+            codproduto: Number(codproduto),
+            codfilial: filialId
+          }
+        },
+        update: {
+          quantidade: { increment: Number(quantidade) },
+          atualizado_em: new Date()
+        },
+        create: {
+          codproduto: Number(codproduto),
+          codfilial: filialId,
+          quantidade: Number(quantidade)
+        }
+      });
+
+      return novaMov;
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao registrar entrada manual" });
+  }
+}
+
 export async function registrarSaidaManual(req, res) {
   try {
     const { codproduto, codfilial, quantidade, origem } = req.body;
