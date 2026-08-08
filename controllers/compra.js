@@ -62,6 +62,15 @@ export const createCompra = async (req, res) => {
       // 2. Se finalizada, movimenta estoque
       if (status === "FINALIZADA") {
         for (const item of itens) {
+          // Busca informações atuais do produto antes de alterar o estoque
+          const produtoInfo = await tx.msproduto.findUnique({
+            where: { codproduto: item.codproduto },
+            include: {
+              msestoque: { where: { codfilial: codfilial || 1 } },
+              mstabela_preco: { where: { ativo: 'S' } }
+            }
+          });
+
           // Cria movimento
           await tx.msmov_estoque.create({
             data: {
@@ -122,11 +131,25 @@ export const createCompra = async (req, res) => {
             }
           });
           
-          // Atualiza custo do produto
-          await tx.msproduto.update({
-            where: { codproduto: item.codproduto },
-            data: { custo: item.custo_unitario }
-          });
+          // Atualiza custo do produto seguindo a regra: Max(Media Ponderada, Ultima Entrada)
+          const currentQuantity = produtoInfo?.msestoque?.[0]?.quantidade || 0;
+          const currentCost = Number(produtoInfo?.mstabela_preco?.[0]?.preco_custo || 0);
+          
+          let novoCusto = item.custo_unitario;
+          if (currentQuantity > 0) {
+            const totalEmEstoqueAtual = currentQuantity * currentCost;
+            const totalNovaEntrada = item.quantidade * item.custo_unitario;
+            const mediaPonderada = (totalEmEstoqueAtual + totalNovaEntrada) / (currentQuantity + item.quantidade);
+            
+            novoCusto = Math.max(mediaPonderada, item.custo_unitario);
+          }
+
+          if (produtoInfo?.mstabela_preco?.[0]) {
+            await tx.mstabela_preco.update({
+              where: { codtabela: produtoInfo.mstabela_preco[0].codtabela },
+              data: { preco_custo: Number(novoCusto.toFixed(2)) }
+            });
+          }
         }
       }
 
@@ -136,7 +159,7 @@ export const createCompra = async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Erro ao criar compra." });
+    res.status(500).json({ error: "Erro ao criar compra.", details: error.message });
   }
 };
 
