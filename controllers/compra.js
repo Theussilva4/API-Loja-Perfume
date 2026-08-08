@@ -152,7 +152,7 @@ export const createCompra = async (req, res) => {
 
           if (tabelaPreco) {
             await tx.mstabela_preco.update({
-              where: { codtabela: tabelaPreco.codtabela },
+              where: { codpreco: tabelaPreco.codpreco },
               data: { preco_custo: Number(novoCusto.toFixed(2)) }
             });
           }
