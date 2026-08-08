@@ -64,8 +64,17 @@ export async function listarMovimentacoesSaida(req, res) {
 
 export async function registrarEntradaManual(req, res) {
   try {
-    const { filialDestino, itens, origem } = req.body;
+    let { filialDestino, itens, origem, codproduto, codfilial, quantidade } = req.body;
     
+    // Suporte ao formato antigo (frontend com cache)
+    if (!itens && codproduto && codfilial && quantidade) {
+      filialDestino = parseInt(codfilial);
+      itens = [{
+        codproduto: parseInt(codproduto),
+        quantidade: Number(quantidade)
+      }];
+    }
+
     if (!filialDestino || !itens || !itens.length) {
       return res.status(400).json({ erro: "Filial destino e itens são obrigatórios" });
     }
