@@ -65,7 +65,6 @@ export const statusCaixa = async (req, res) => {
         
         const sessao = await prisma.mscaixa_sessao.findFirst({
             where: {
-                codusur_abertura: codusur,
                 status: 'ABERTO'
             },
             include: {
@@ -92,13 +91,13 @@ export const abrirCaixa = async (req, res) => {
 
         if (!codcaixa) return res.status(400).json({ message: 'Caixa é obrigatório.' });
 
-        // Verifica se o usuário já tem caixa aberto
+        // Verifica se já existe algum caixa aberto na loja
         const sessaoAtiva = await prisma.mscaixa_sessao.findFirst({
-            where: { codusur_abertura: codusur, status: 'ABERTO' }
+            where: { status: 'ABERTO' }
         });
 
         if (sessaoAtiva) {
-            return res.status(400).json({ message: 'Você já possui um caixa aberto.' });
+            return res.status(400).json({ message: 'Já existe um caixa aberto na loja.' });
         }
 
         // Verifica se o caixa escolhido já está aberto por outra pessoa

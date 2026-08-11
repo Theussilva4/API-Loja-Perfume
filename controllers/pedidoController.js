@@ -199,7 +199,7 @@ export async function criarPedido(req, res) {
       let sessaoCaixa = null;
       if (finalStatus === "FINALIZADO") {
         sessaoCaixa = await tx.mscaixa_sessao.findFirst({
-          where: { codusur_abertura: codusur_criou ? Number(codusur_criou) : undefined, status: 'ABERTO' }
+          where: { status: 'ABERTO' }
         });
         if (!sessaoCaixa) {
           throw new Error("Você precisa ter um caixa aberto para finalizar uma venda.");
@@ -451,7 +451,7 @@ export async function alterarStatus(req, res) {
         // Precisamos do codusur_criou. Se não vier no body, usamos do pedidoAnterior.
         const usrId = req.body.codusur_cancelou || req.body.codusur || pedidoAnterior.codusur_criou;
         const sessaoCaixa = await tx.mscaixa_sessao.findFirst({
-          where: { codusur_abertura: usrId ? Number(usrId) : undefined, status: 'ABERTO' }
+          where: { status: 'ABERTO' }
         });
         if (!sessaoCaixa) {
           throw new Error("Você precisa ter um caixa aberto para finalizar uma venda.");
@@ -542,8 +542,8 @@ export async function atualizarPedido(req, res) {
       let sessaoCaixa = null;
       if (pedidoAnterior.status !== "FINALIZADO" && (status === "FINALIZADO" || status === "FINALIZADA")) {
         sessaoCaixa = await tx.mscaixa_sessao.findFirst({
-          // Verifica se o usuário que está alterando tem caixa aberto
-          where: { codusur_abertura: codusur ? Number(codusur) : undefined, status: 'ABERTO' }
+          // Caixa compartilhado: Pega o caixa aberto da loja
+          where: { status: 'ABERTO' }
         });
         if (!sessaoCaixa) {
           throw new Error("Você precisa ter um caixa aberto para finalizar uma venda.");
