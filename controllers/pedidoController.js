@@ -429,6 +429,31 @@ export async function alterarStatus(req, res) {
       await prisma.$transaction(async (tx) => {
         if (pedidoAnterior.status === "FINALIZADO") {
           await estornarEstoqueFefo(tx, pedidoAnterior.numpedido, pedidoAnterior);
+
+          // Estornar os valores do caixa
+          const usrId = codusur_cancelou || pedidoAnterior.codusur_criou;
+          const sessaoCaixa = await tx.mscaixa_sessao.findFirst({
+            where: { status: 'ABERTO' }
+          });
+
+          const movimentos = await tx.mscaixa_movimento.findMany({
+            where: { numpedido: pedidoAnterior.numpedido, categoria: 'VENDA' }
+          });
+          
+          for (const mov of movimentos) {
+            await tx.mscaixa_movimento.create({
+              data: {
+                codsessao: sessaoCaixa ? sessaoCaixa.codsessao : mov.codsessao, // Se não tiver caixa aberto, joga no mesmo da venda (embora caixa devesse estar aberto)
+                codusur: usrId ? Number(usrId) : mov.codusur,
+                tipo: 'SAIDA',
+                categoria: 'ESTORNO',
+                valor: mov.valor,
+                codplano_pagamento: mov.codplano_pagamento,
+                numpedido: mov.numpedido,
+                observacao: `Estorno de Venda ${pedidoAnterior.codigo_venda || pedidoAnterior.numpedido}`
+              }
+            });
+          }
         }
 
         await tx.mspedido.update({
