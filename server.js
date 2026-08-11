@@ -22,6 +22,8 @@ import compraRoutes from "./routes/compra.js"
 import dashboardRoutes from "./routes/dashboard.js"
 import precificacaoRoutes from "./routes/precificacao.js"
 import configuracaoRoutes from "./routes/configuracao.js"
+import relatoriosRoutes from "./routes/relatorios.js"
+import caixaRoutes from "./routes/caixa.js"
 import { sendTelegramAlert } from "./utils/telegram.js"
 
 const app = express()
@@ -91,6 +93,8 @@ app.use("/api/compras", compraRoutes)
 app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/comercial", precificacaoRoutes)
 app.use("/api/configuracoes", configuracaoRoutes)
+app.use("/api/relatorios", relatoriosRoutes)
+app.use("/api/caixa", caixaRoutes)
 
 // Rota de teste para validar o Telegram
 app.get("/api/teste-erro", (req, res) => {

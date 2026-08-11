@@ -38,11 +38,16 @@ export async function listarTabelaPrecos(req, res) {
       }
     });
 
+    const categorias = await prisma.mscategoria.findMany();
+    const mapCategorias = {};
+    categorias.forEach(c => mapCategorias[c.codcategoria] = c.margem_padrao ? Number(c.margem_padrao) : null);
+
     // Anexar o preço calculado a cada produto
     const resultado = await Promise.all(produtos.map(async (p) => {
       const calculo = await precificacaoService.calculatePrice(p.codproduto);
       return {
         ...p,
+        margem_padrao_categoria: mapCategorias[p.codcategoria],
         precificacao: calculo
       };
     }));

@@ -13,7 +13,7 @@ export async function listarcategorias(req, res) {
 }
 
 export async function criarcategorias(req, res) {
-  const { categoria, ativo } = req.body;
+  const { categoria, ativo, margem_padrao } = req.body;
   if (!categoria) {
     return res.status(400).json({ erro: "O nome da categoria é obrigatório" });
   }
@@ -22,7 +22,8 @@ export async function criarcategorias(req, res) {
     const novaCategoria = await prisma.mscategoria.create({
       data: {
         categoria,
-        ativo: ativo || "S"
+        ativo: ativo || "S",
+        margem_padrao: margem_padrao !== undefined ? margem_padrao : 50
       }
     });
     res.status(201).json(novaCategoria);

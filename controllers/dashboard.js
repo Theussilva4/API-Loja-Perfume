@@ -77,12 +77,14 @@ export const getDashboardMetrics = async (req, res) => {
         pedidosEmAbertoHoje++;
       }
 
+      let custoTotalPedido = 0;
       for (const item of ped.mspedido_item) {
-        const pVenda = Number(item.preco_unitario || 0);
         const pCusto = Number(item.msproduto?.mstabela_preco?.[0]?.preco_custo || 0);
         const qtd = Number(item.quantidade || 0);
-        lucroBrutoHoje += (pVenda - pCusto) * qtd;
+        custoTotalPedido += (pCusto * qtd);
       }
+      const receitaProdutos = Number(ped.subtotal || 0) - Number(ped.desconto || 0);
+      lucroBrutoHoje += (receitaProdutos - custoTotalPedido);
     }
 
     const ticketMedio = pedidosHoje.length > 0 ? (faturamentoHoje / pedidosHoje.length) : 0;

@@ -28,12 +28,16 @@ export const getCompras = async (req, res) => {
 
 export const createCompra = async (req, res) => {
   try {
-    const { codfornecedor, numero_documento, observacao, itens, codfilial } = req.body;
+    const { codfornecedor, numero_documento, observacao, itens, codfilial, atualizacoesCusto } = req.body;
     
     // Calcula total
     const valor_total = itens.reduce((acc, item) => acc + (item.quantidade * item.custo_unitario), 0);
     const codigo_compra = await generateCompraCode();
     const status = "FINALIZADA"; // Para simplificar o MVP, vamos iniciar já finalizando e atualizando estoque. Pode ser ABERTA no futuro.
+
+    // Busca configuracao para saber como tratar o custo
+    const config = await prisma.msconfiguracao_empresa.findFirst();
+    const atualizacaoConfig = config?.atualizacao_custo_compra || "PERGUNTAR";
 
     const result = await prisma.$transaction(async (tx) => {
       // 1. Cria Compra
@@ -137,24 +141,56 @@ export const createCompra = async (req, res) => {
             }
           });
           
-          // Atualiza custo do produto seguindo a regra: Max(Media Ponderada, Ultima Entrada)
-          const currentQuantity = estoqueAtual?.quantidade || 0;
-          const currentCost = Number(tabelaPreco?.preco_custo || 0);
-          
-          let novoCusto = item.custo_unitario;
-          if (currentQuantity > 0) {
-            const totalEmEstoqueAtual = currentQuantity * currentCost;
-            const totalNovaEntrada = item.quantidade * item.custo_unitario;
-            const mediaPonderada = (totalEmEstoqueAtual + totalNovaEntrada) / (currentQuantity + item.quantidade);
-            
-            novoCusto = Math.max(mediaPonderada, item.custo_unitario);
-          }
-
+          // Lógica de Atualização de Custo
           if (tabelaPreco) {
-            await tx.mstabela_preco.update({
-              where: { codpreco: tabelaPreco.codpreco },
-              data: { preco_custo: Number(novoCusto.toFixed(2)) }
-            });
+            let novoCusto = null;
+
+            // Se o frontend enviou atualizações explícitas (Ex: a opção "PERGUNTAR" gerou um modal)
+            if (atualizacoesCusto && Array.isArray(atualizacoesCusto)) {
+              const explicitUpdate = atualizacoesCusto.find(a => String(a.codproduto) === String(item.codproduto));
+              if (explicitUpdate && explicitUpdate.metodo !== "MANTER" && explicitUpdate.novo_custo) {
+                novoCusto = explicitUpdate.novo_custo;
+              }
+            } else if (atualizacaoConfig !== "MANTER") {
+              // Comportamento automático de acordo com a configuração
+              if (atualizacaoConfig === "ULTIMO_CUSTO") {
+                novoCusto = item.custo_unitario;
+              } else if (atualizacaoConfig === "CUSTO_MEDIO" || atualizacaoConfig === "PERGUNTAR") {
+                // OBS: Se for PERGUNTAR e não veio 'atualizacoesCusto', significa que não houve variação 
+                // e o frontend ignorou, mas se o custo unitário for diferente do atual, podemos não fazer nada ou forçar médio.
+                // Mas geralmente, se for CUSTO_MEDIO, faz a matemática:
+                const currentQuantity = estoqueAtual?.quantidade || 0;
+                const currentCost = Number(tabelaPreco.preco_custo || 0);
+                
+                if (currentQuantity > 0) {
+                  const totalEmEstoqueAtual = currentQuantity * currentCost;
+                  const totalNovaEntrada = item.quantidade * item.custo_unitario;
+                  novoCusto = (totalEmEstoqueAtual + totalNovaEntrada) / (currentQuantity + item.quantidade);
+                } else {
+                  novoCusto = item.custo_unitario;
+                }
+              }
+            }
+
+            if (novoCusto !== null) {
+              // Fecha a vigência atual e abre nova para manter histórico
+              await tx.mstabela_preco.update({
+                where: { codpreco: tabelaPreco.codpreco },
+                data: { data_fim: new Date() }
+              });
+
+              await tx.mstabela_preco.create({
+                data: {
+                  codproduto: item.codproduto,
+                  preco_custo: Number(Number(novoCusto).toFixed(2)),
+                  preco_venda: tabelaPreco.preco_venda,
+                  preco_cartao: tabelaPreco.preco_cartao,
+                  desconto_maximo: tabelaPreco.desconto_maximo,
+                  data_inicio: new Date(),
+                  created_by: req.user?.id || null
+                }
+              });
+            }
           }
         }
       }

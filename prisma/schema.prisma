@@ -8,102 +8,105 @@ datasource db {
 }
 
 model mscliente {
-  codcliente    Int        @id @default(autoincrement())
-  uuid          String?    @default(uuid()) @db.VarChar(36)
-  nome          String     @db.VarChar(200)
-  cpf_cnpj      String?    @db.VarChar(20)
-  telefone      String?    @db.VarChar(20)
-  whatsapp      String?    @db.VarChar(20)
-  email         String?    @db.VarChar(200)
-  data_nascimento DateTime? @db.Date
-  endereco      String?    @db.VarChar(200)
-  numero        String?    @db.VarChar(20)
-  bairro        String?    @db.VarChar(100)
-  cidade        String?    @db.VarChar(100)
-  estado        String?    @db.VarChar(2)
-  cep           String?    @db.VarChar(10)
-  observacoes   String?    @db.Text
-  ativo         String?    @default("S") @db.Char(1)
-  data_cadastro DateTime?  @default(now()) @db.DateTime(0)
-  created_at    DateTime?  @default(now()) @db.DateTime(0)
-  updated_at    DateTime?  @updatedAt @db.DateTime(0)
-  mspedido      mspedido[]
+  codcliente      Int        @id @default(autoincrement())
+  uuid            String?    @default(uuid()) @db.VarChar(36)
+  nome            String     @db.VarChar(200)
+  cpf_cnpj        String?    @db.VarChar(20)
+  telefone        String?    @db.VarChar(20)
+  whatsapp        String?    @db.VarChar(20)
+  email           String?    @db.VarChar(200)
+  data_nascimento DateTime?  @db.Date
+  endereco        String?    @db.VarChar(200)
+  numero          String?    @db.VarChar(20)
+  bairro          String?    @db.VarChar(100)
+  cidade          String?    @db.VarChar(100)
+  estado          String?    @db.VarChar(2)
+  cep             String?    @db.VarChar(10)
+  observacoes     String?    @db.Text
+  ativo           String?    @default("S") @db.Char(1)
+  data_cadastro   DateTime?  @default(now()) @db.DateTime(0)
+  created_at      DateTime?  @default(now()) @db.DateTime(0)
+  updated_at      DateTime?  @updatedAt @db.DateTime(0)
+  mspedido        mspedido[]
 }
 
 model msforma_pagamento {
-  codforma   Int     @id @default(autoincrement())
-  uuid       String?  @default(uuid()) @db.VarChar(36)
-  descricao  String  @db.VarChar(100)
-  prazo_dias Int?    @default(0)
-  ativo      String? @default("S") @db.Char(1)
+  codforma   Int       @id @default(autoincrement())
+  uuid       String?   @default(uuid()) @db.VarChar(36)
+  descricao  String    @db.VarChar(100)
+  prazo_dias Int?      @default(0)
+  ativo      String?   @default("S") @db.Char(1)
   created_at DateTime? @default(now()) @db.DateTime(0)
   updated_at DateTime? @updatedAt @db.DateTime(0)
 }
 
 model msproduto {
-  codproduto     Int             @id @default(autoincrement())
-  uuid           String?         @default(uuid()) @db.VarChar(36)
-  descricao      String          @db.VarChar(200)
-  marca          String?         @db.VarChar(100)
-  codmarca       Int?
-  codcategoria   Int?
-  codigo_barras  Decimal?        @unique @db.Decimal(20, 0)
-  volume_ml      Int?
-  estoque_minimo Int?            @default(0)
-  resumo         String?         @db.VarChar(255)
-  ativo          String?         @default("S") @db.Char(1)
-  data_cadastro  DateTime?       @default(now()) @db.DateTime(0)
-  created_at     DateTime?       @default(now()) @db.DateTime(0)
-  updated_at     DateTime?       @updatedAt @db.DateTime(0)
-  created_by     Int?
-  codfornecedor  Int?
-  imagem_url     String?         @db.VarChar(255)
-  imagem_public_id String?       @db.VarChar(100)
-  msfornecedor   msfornecedor?   @relation(fields: [codfornecedor], references: [codfornecedor], onDelete: NoAction, onUpdate: NoAction)
-  updated_by     Int?
-  mspedido_item  mspedido_item[]
-  mscompra_item  mscompra_item[]
-  mstabela_preco mstabela_preco[]
-  mspromocao_item mspromocao_item[]
-  msestoque_lote msestoque_lote[]
-  mssaida_lote   mssaida_lote[]
-  mskit_item     mskit_item[]
+  codproduto       Int               @id @default(autoincrement())
+  uuid             String?           @default(uuid()) @db.VarChar(36)
+  descricao        String            @db.VarChar(200)
+  marca            String?           @db.VarChar(100)
+  codmarca         Int?
+  codcategoria     Int?
+  codigo_barras    Decimal?          @unique @db.Decimal(20, 0)
+  volume_ml        Int?
+  estoque_minimo   Int?              @default(0)
+  resumo           String?           @db.VarChar(255)
+  ativo            String?           @default("S") @db.Char(1)
+  data_cadastro    DateTime?         @default(now()) @db.DateTime(0)
+  created_at       DateTime?         @default(now()) @db.DateTime(0)
+  updated_at       DateTime?         @updatedAt @db.DateTime(0)
+  created_by       Int?
+  codfornecedor    Int?
+  imagem_url       String?           @db.VarChar(255)
+  imagem_public_id String?           @db.VarChar(100)
+  msfornecedor     msfornecedor?     @relation(fields: [codfornecedor], references: [codfornecedor], onDelete: NoAction, onUpdate: NoAction)
+  updated_by       Int?
+  mspedido_item    mspedido_item[]
+  mscompra_item    mscompra_item[]
+  mstabela_preco   mstabela_preco[]
+  mspromocao_item  mspromocao_item[]
+  msestoque_lote   msestoque_lote[]
+  mssaida_lote     mssaida_lote[]
+  mskit_item       mskit_item[]
 }
 
 model msstatus_pedido {
-  codstatus Int    @id @default(autoincrement())
+  codstatus Int     @id @default(autoincrement())
   uuid      String? @default(uuid()) @db.VarChar(36)
-  descricao String @db.VarChar(50)
+  descricao String  @db.VarChar(50)
 }
 
 model msusuario {
-  codusur                                       Int        @id @default(autoincrement())
-  uuid                                          String?     @default(uuid()) @db.VarChar(36)
-  nome                                          String     @db.VarChar(200)
-  cpf                                           String?    @unique(map: "cpf") @db.VarChar(11)
-  data_nascimento                               DateTime?  @db.Date
-  email                                         String?    @db.VarChar(200)
-  telefone                                      String?    @db.VarChar(20)
-  login                                         String     @unique(map: "login") @db.VarChar(100)
-  senha_hash                                    String     @db.VarChar(255)
-  senha_alterada                                Boolean    @default(false)
-  tipo_usuario                                  String?    @db.VarChar(20)
+  codusur                                       Int                 @id @default(autoincrement())
+  uuid                                          String?             @default(uuid()) @db.VarChar(36)
+  nome                                          String              @db.VarChar(200)
+  cpf                                           String?             @unique(map: "cpf") @db.VarChar(11)
+  data_nascimento                               DateTime?           @db.Date
+  email                                         String?             @db.VarChar(200)
+  telefone                                      String?             @db.VarChar(20)
+  login                                         String              @unique(map: "login") @db.VarChar(100)
+  senha_hash                                    String              @db.VarChar(255)
+  senha_alterada                                Boolean             @default(false)
+  tipo_usuario                                  String?             @db.VarChar(20)
   codfilial                                     Int?
   codrca                                        Int?
   codvendedor                                   Int?
-  ativo                                         String?    @default("S") @db.Char(1)
-  data_criacao                                  DateTime?  @default(now()) @db.DateTime(0)
-  ultimo_login                                  DateTime?  @db.DateTime(0)
-  created_at                                    DateTime?  @default(now()) @db.DateTime(0)
-  updated_at                                    DateTime?  @updatedAt @db.DateTime(0)
-  mspedido_mspedido_codusur_criouTomsusuario    mspedido[] @relation("mspedido_codusur_criouTomsusuario")
-  mspedido_mspedido_codusur_vendedorTomsusuario mspedido[] @relation("mspedido_codusur_vendedorTomsusuario")
-  mspedido_mspedido_codusur_cancelouTomsusuario mspedido[] @relation("mspedido_codusur_cancelouTomsusuario")
+  ativo                                         String?             @default("S") @db.Char(1)
+  data_criacao                                  DateTime?           @default(now()) @db.DateTime(0)
+  ultimo_login                                  DateTime?           @db.DateTime(0)
+  created_at                                    DateTime?           @default(now()) @db.DateTime(0)
+  updated_at                                    DateTime?           @updatedAt @db.DateTime(0)
+  mspedido_mspedido_codusur_criouTomsusuario    mspedido[]          @relation("mspedido_codusur_criouTomsusuario")
+  mspedido_mspedido_codusur_vendedorTomsusuario mspedido[]          @relation("mspedido_codusur_vendedorTomsusuario")
+  mspedido_mspedido_codusur_cancelouTomsusuario mspedido[]          @relation("mspedido_codusur_cancelouTomsusuario")
+  sessoes_abertas                               mscaixa_sessao[]    @relation("sessao_abertura")
+  sessoes_fechadas                              mscaixa_sessao[]    @relation("sessao_fechamento")
+  movimentos_caixa                              mscaixa_movimento[]
 }
 
 model msentrada_estoque {
   id                  Int       @id @default(autoincrement())
-  uuid                String?    @default(uuid()) @db.VarChar(36)
+  uuid                String?   @default(uuid()) @db.VarChar(36)
   codproduto          Int
   codfilial           Int
   quantidade          Int
@@ -120,8 +123,8 @@ model msentrada_estoque {
 model msestoque {
   codproduto    Int
   codfilial     Int
-  quantidade    Int      @default(0)
-  atualizado_em DateTime @default(now()) @db.Timestamp(0)
+  quantidade    Int       @default(0)
+  atualizado_em DateTime  @default(now()) @db.Timestamp(0)
   created_at    DateTime? @default(now()) @db.DateTime(0)
   updated_at    DateTime? @updatedAt @db.DateTime(0)
 
@@ -129,17 +132,17 @@ model msestoque {
 }
 
 model msestoque_lote {
-  id            Int       @id @default(autoincrement())
-  uuid          String?   @default(uuid()) @db.VarChar(36)
-  codproduto    Int
-  codfilial     Int
-  lote          String    @db.VarChar(50)
-  validade      DateTime? @db.Date
-  quantidade    Int       @default(0)
-  created_at    DateTime? @default(now()) @db.DateTime(0)
-  updated_at    DateTime? @updatedAt @db.DateTime(0)
+  id         Int       @id @default(autoincrement())
+  uuid       String?   @default(uuid()) @db.VarChar(36)
+  codproduto Int
+  codfilial  Int
+  lote       String    @db.VarChar(50)
+  validade   DateTime? @db.Date
+  quantidade Int       @default(0)
+  created_at DateTime? @default(now()) @db.DateTime(0)
+  updated_at DateTime? @updatedAt @db.DateTime(0)
 
-  msproduto     msproduto @relation(fields: [codproduto], references: [codproduto], onDelete: NoAction, onUpdate: NoAction)
+  msproduto msproduto @relation(fields: [codproduto], references: [codproduto], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([codproduto], map: "idx_estoque_lote_produto")
   @@index([codfilial], map: "idx_estoque_lote_filial")
@@ -147,18 +150,18 @@ model msestoque_lote {
 }
 
 model mssaida_lote {
-  id            Int       @id @default(autoincrement())
-  uuid          String?   @default(uuid()) @db.VarChar(36)
-  codproduto    Int
-  codfilial     Int
-  lote          String    @db.VarChar(50)
-  quantidade    Int
-  tipo_saida    String    @db.VarChar(20) // VENDA, PERDA, AJUSTE, TROCA
-  origem_id     Int?      // numpedido, id do ajuste, etc
-  created_at    DateTime? @default(now()) @db.DateTime(0)
-  created_by    Int?
+  id         Int       @id @default(autoincrement())
+  uuid       String?   @default(uuid()) @db.VarChar(36)
+  codproduto Int
+  codfilial  Int
+  lote       String    @db.VarChar(50)
+  quantidade Int
+  tipo_saida String    @db.VarChar(20) // VENDA, PERDA, AJUSTE, TROCA
+  origem_id  Int? // numpedido, id do ajuste, etc
+  created_at DateTime? @default(now()) @db.DateTime(0)
+  created_by Int?
 
-  msproduto     msproduto @relation(fields: [codproduto], references: [codproduto], onDelete: NoAction, onUpdate: NoAction)
+  msproduto msproduto @relation(fields: [codproduto], references: [codproduto], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([codproduto], map: "idx_saida_lote_produto")
   @@index([lote], map: "idx_saida_lote_lote")
@@ -166,80 +169,83 @@ model mssaida_lote {
 
 model msmov_estoque {
   id         Int       @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
+  uuid       String?   @default(uuid()) @db.VarChar(36)
   codproduto Int
   codfilial  Int
   tipo       String?   @db.VarChar(20)
   origem     String?   @db.VarChar(50) // "VENDA", "COMPRA", "AJUSTE"
   quantidade Int
   data_mov   DateTime? @default(now()) @db.DateTime(0)
-  origem_id  Int?      // ID da compra ou venda correspondente
+  origem_id  Int? // ID da compra ou venda correspondente
   created_at DateTime? @default(now()) @db.DateTime(0)
   created_by Int?
 }
 
 model mscategoria {
-  codcategoria Int     @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
-  categoria    String? @db.VarChar(50)
-  ativo        String? @default("S") @db.Char(1)
-  created_at   DateTime? @default(now()) @db.DateTime(0)
-  updated_at   DateTime? @updatedAt @db.DateTime(0)
+  codcategoria  Int       @id @default(autoincrement())
+  uuid          String?   @default(uuid()) @db.VarChar(36)
+  categoria     String?   @db.VarChar(50)
+  ativo         String?   @default("S") @db.Char(1)
+  margem_padrao Decimal?  @default(50) @db.Decimal(5, 2)
+  created_at    DateTime? @default(now()) @db.DateTime(0)
+  updated_at    DateTime? @updatedAt @db.DateTime(0)
 }
 
 model msfilial {
-  codfilial Int     @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
-  filial    String? @db.VarChar(100)
-  ativo     String? @default("S") @db.Char(1)
+  codfilial  Int       @id @default(autoincrement())
+  uuid       String?   @default(uuid()) @db.VarChar(36)
+  filial     String?   @db.VarChar(100)
+  ativo      String?   @default("S") @db.Char(1)
   created_at DateTime? @default(now()) @db.DateTime(0)
   updated_at DateTime? @updatedAt @db.DateTime(0)
 }
 
 model msmarca {
-  codmarca Int     @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
-  marca    String? @db.VarChar(60)
-  ativo    String? @default("S") @db.Char(1)
+  codmarca   Int       @id @default(autoincrement())
+  uuid       String?   @default(uuid()) @db.VarChar(36)
+  marca      String?   @db.VarChar(60)
+  ativo      String?   @default("S") @db.Char(1)
   created_at DateTime? @default(now()) @db.DateTime(0)
   updated_at DateTime? @updatedAt @db.DateTime(0)
 }
 
 model mspedido {
-  numpedido                                      Int             @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
-  codigo_venda                                   String?         @db.VarChar(20) // VEN-000001
-  codcliente                                     Int
-  codusur_criou                                  Int?
-  codusur_vendedor                               Int?
-  data_pedido                                    DateTime?       @default(now()) @db.DateTime(0)
-  subtotal                                       Decimal?        @default(0) @db.Decimal(12, 2)
-  desconto                                       Decimal?        @default(0) @db.Decimal(12, 2)
-  valor_frete                                    Decimal?        @default(0) @db.Decimal(12, 2)
-  valor_total                                    Decimal?        @default(0) @db.Decimal(12, 2)
-  status                                         String?         @default("EM_DIGITACAO") @db.VarChar(20) // EM_DIGITACAO, FINALIZADO, CANCELADO
-  codfilial                                      Int?
-  CODPLPAG                                       Int?
-  codstatus                                      Int?
-  codvendedor                                    Int?
-  parcelas                                       Int?
-  ativo                                          String?         @default("S") @db.Char(1)
-  created_at                                     DateTime?       @default(now()) @db.DateTime(0)
-  updated_at                                     DateTime?       @updatedAt @db.DateTime(0)
-  created_by                                     Int?
-  updated_by                                     Int?
-  observacoes                                    String?         @db.Text
-  
-  motivo_cancelamento                            String?         @db.Text
-  data_cancelamento                              DateTime?       @db.DateTime(0)
-  codusur_cancelou                               Int?
+  numpedido        Int       @id @default(autoincrement())
+  uuid             String?   @default(uuid()) @db.VarChar(36)
+  codigo_venda     String?   @db.VarChar(20) // VEN-000001
+  codcliente       Int
+  codusur_criou    Int?
+  codusur_vendedor Int?
+  data_pedido      DateTime? @default(now()) @db.DateTime(0)
+  subtotal         Decimal?  @default(0) @db.Decimal(12, 2)
+  desconto         Decimal?  @default(0) @db.Decimal(12, 2)
+  valor_frete      Decimal?  @default(0) @db.Decimal(12, 2)
+  valor_total      Decimal?  @default(0) @db.Decimal(12, 2)
+  status           String?   @default("EM_DIGITACAO") @db.VarChar(20) // EM_DIGITACAO, FINALIZADO, CANCELADO
+  codfilial        Int?
+  CODPLPAG         Int?
+  codstatus        Int?
+  codvendedor      Int?
+  parcelas         Int?
+  ativo            String?   @default("S") @db.Char(1)
+  created_at       DateTime? @default(now()) @db.DateTime(0)
+  updated_at       DateTime? @updatedAt @db.DateTime(0)
+  created_by       Int?
+  updated_by       Int?
+  observacoes      String?   @db.Text
 
-  mscliente                                      mscliente       @relation(fields: [codcliente], references: [codcliente], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_1")
-  msusuario_mspedido_codusur_criouTomsusuario    msusuario?      @relation("mspedido_codusur_criouTomsusuario", fields: [codusur_criou], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_2")
-  msusuario_mspedido_codusur_vendedorTomsusuario msusuario?      @relation("mspedido_codusur_vendedorTomsusuario", fields: [codusur_vendedor], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_3")
-  msusuario_mspedido_codusur_cancelouTomsusuario msusuario?      @relation("mspedido_codusur_cancelouTomsusuario", fields: [codusur_cancelou], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_cancelou")
+  motivo_cancelamento String?   @db.Text
+  data_cancelamento   DateTime? @db.DateTime(0)
+  codusur_cancelou    Int?
+
+  mscliente                                      mscliente            @relation(fields: [codcliente], references: [codcliente], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_1")
+  msusuario_mspedido_codusur_criouTomsusuario    msusuario?           @relation("mspedido_codusur_criouTomsusuario", fields: [codusur_criou], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_2")
+  msusuario_mspedido_codusur_vendedorTomsusuario msusuario?           @relation("mspedido_codusur_vendedorTomsusuario", fields: [codusur_vendedor], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_3")
+  msusuario_mspedido_codusur_cancelouTomsusuario msusuario?           @relation("mspedido_codusur_cancelouTomsusuario", fields: [codusur_cancelou], references: [codusur], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_ibfk_cancelou")
   mspedido_item                                  mspedido_item[]
   mspedido_kit                                   mspedido_kit[]
+  pagamentos_multiplos                           mspedido_pagamento[]
+  movimentos_caixa                               mscaixa_movimento[]
 
   @@index([codcliente], map: "codcliente")
   @@index([codusur_criou], map: "codusur_criou")
@@ -248,18 +254,18 @@ model mspedido {
 }
 
 model mspedido_item {
-  coditem        Int        @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
+  coditem        Int           @id @default(autoincrement())
+  uuid           String?       @default(uuid()) @db.VarChar(36)
   numpedido      Int?
   codproduto     Int?
   quantidade     Int?
-  preco_unitario Decimal?   @db.Decimal(12, 2)
-  valor_total    Decimal?   @db.Decimal(12, 2)
+  preco_unitario Decimal?      @db.Decimal(12, 2)
+  valor_total    Decimal?      @db.Decimal(12, 2)
   pedido_kit_id  Int?
-  created_at     DateTime?  @default(now()) @db.DateTime(0)
-  updated_at     DateTime?  @updatedAt @db.DateTime(0)
-  mspedido       mspedido?  @relation(fields: [numpedido], references: [numpedido], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_item_ibfk_1")
-  msproduto      msproduto? @relation(fields: [codproduto], references: [codproduto], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_item_ibfk_2")
+  created_at     DateTime?     @default(now()) @db.DateTime(0)
+  updated_at     DateTime?     @updatedAt @db.DateTime(0)
+  mspedido       mspedido?     @relation(fields: [numpedido], references: [numpedido], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_item_ibfk_1")
+  msproduto      msproduto?    @relation(fields: [codproduto], references: [codproduto], onDelete: NoAction, onUpdate: NoAction, map: "mspedido_item_ibfk_2")
   mspedido_kit   mspedido_kit? @relation(fields: [pedido_kit_id], references: [id])
 
   @@index([codproduto], map: "codproduto")
@@ -287,34 +293,36 @@ model msvendedor {
 }
 
 model MSPLANOPAGAMENTO {
-  CODPLPAG             Int       @id @default(autoincrement())
-  uuid                 String?   @default(uuid()) @db.VarChar(36)
-  DESCRICAO            String?   @db.VarChar(50)
-  tipo_pagamento       String?   @default("A_VISTA") @db.VarChar(20)
-  ATIVO                String?   @default("S") @db.Char(1)
-  tem_acrescimo        Boolean?  @default(false)
-  taxa_acrescimo       Decimal?  @default(0) @db.Decimal(5, 2)
-  max_parcelas         Int?      @default(1)
-  valor_minimo_parcela Decimal?  @default(0.00) @db.Decimal(12, 2)
-  regras_parcelamento  String?   @db.Text
-  created_at           DateTime? @default(now()) @db.DateTime(0)
-  updated_at           DateTime? @updatedAt @db.DateTime(0)
+  CODPLPAG             Int                  @id @default(autoincrement())
+  uuid                 String?              @default(uuid()) @db.VarChar(36)
+  DESCRICAO            String?              @db.VarChar(50)
+  tipo_pagamento       String?              @default("A_VISTA") @db.VarChar(20)
+  ATIVO                String?              @default("S") @db.Char(1)
+  tem_acrescimo        Boolean?             @default(false)
+  taxa_acrescimo       Decimal?             @default(0) @db.Decimal(5, 2)
+  max_parcelas         Int?                 @default(1)
+  valor_minimo_parcela Decimal?             @default(0.00) @db.Decimal(12, 2)
+  regras_parcelamento  String?              @db.Text
+  created_at           DateTime?            @default(now()) @db.DateTime(0)
+  updated_at           DateTime?            @updatedAt @db.DateTime(0)
+  mscaixaMovimentos    mscaixa_movimento[]
+  mspedidoPagamentos   mspedido_pagamento[]
 }
 
 model msfornecedor {
-  codfornecedor Int        @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
-  nome          String     @db.VarChar(200)
-  cnpj          String?    @db.VarChar(20)
-  telefone      String?    @db.VarChar(20)
-  email         String?    @db.VarChar(200)
-  contato       String?    @db.VarChar(100)
-  cidade        String?    @db.VarChar(100)
-  uf            String?    @db.VarChar(2)
-  observacoes   String?    @db.Text
-  ativo         String?    @default("S") @db.Char(1)
-  created_at    DateTime?  @default(now()) @db.DateTime(0)
-  updated_at    DateTime?  @updatedAt @db.DateTime(0)
+  codfornecedor Int         @id @default(autoincrement())
+  uuid          String?     @default(uuid()) @db.VarChar(36)
+  nome          String      @db.VarChar(200)
+  cnpj          String?     @db.VarChar(20)
+  telefone      String?     @db.VarChar(20)
+  email         String?     @db.VarChar(200)
+  contato       String?     @db.VarChar(100)
+  cidade        String?     @db.VarChar(100)
+  uf            String?     @db.VarChar(2)
+  observacoes   String?     @db.Text
+  ativo         String?     @default("S") @db.Char(1)
+  created_at    DateTime?   @default(now()) @db.DateTime(0)
+  updated_at    DateTime?   @updatedAt @db.DateTime(0)
   created_by    Int?
   updated_by    Int?
   mscompra      mscompra[]
@@ -322,146 +330,147 @@ model msfornecedor {
 }
 
 model mscompra {
-  codcompra        Int             @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
-  codigo_compra    String?         @db.VarChar(20) // CMP-000001
+  codcompra        Int       @id @default(autoincrement())
+  uuid             String?   @default(uuid()) @db.VarChar(36)
+  codigo_compra    String?   @db.VarChar(20) // CMP-000001
   codfornecedor    Int
-  data_compra      DateTime?       @default(now()) @db.DateTime(0)
-  numero_documento String?         @db.VarChar(50)
-  observacao       String?         @db.Text
-  valor_total      Decimal?        @default(0) @db.Decimal(12, 2)
-  status           String?         @default("ABERTA") @db.VarChar(20) // ABERTA, FINALIZADA, CANCELADA
+  data_compra      DateTime? @default(now()) @db.DateTime(0)
+  numero_documento String?   @db.VarChar(50)
+  observacao       String?   @db.Text
+  valor_total      Decimal?  @default(0) @db.Decimal(12, 2)
+  status           String?   @default("ABERTA") @db.VarChar(20) // ABERTA, FINALIZADA, CANCELADA
   codfilial        Int?
-  ativo            String?         @default("S") @db.Char(1)
-  created_at       DateTime?       @default(now()) @db.DateTime(0)
-  updated_at       DateTime?       @updatedAt @db.DateTime(0)
+  ativo            String?   @default("S") @db.Char(1)
+  created_at       DateTime? @default(now()) @db.DateTime(0)
+  updated_at       DateTime? @updatedAt @db.DateTime(0)
   created_by       Int?
   updated_by       Int?
 
-  msfornecedor     msfornecedor    @relation(fields: [codfornecedor], references: [codfornecedor], onDelete: NoAction, onUpdate: NoAction)
-  mscompra_item    mscompra_item[]
+  msfornecedor  msfornecedor    @relation(fields: [codfornecedor], references: [codfornecedor], onDelete: NoAction, onUpdate: NoAction)
+  mscompra_item mscompra_item[]
 
   @@index([codfornecedor], map: "idx_codfornecedor")
 }
 
 model mscompra_item {
-  coditem        Int        @id @default(autoincrement())
-  uuid String? @default(uuid()) @db.VarChar(36)
+  coditem        Int       @id @default(autoincrement())
+  uuid           String?   @default(uuid()) @db.VarChar(36)
   codcompra      Int?
   codproduto     Int?
   quantidade     Int?
-  custo_unitario Decimal?   @db.Decimal(12, 2)
-  valor_total    Decimal?   @db.Decimal(12, 2)
-  lote           String?    @db.VarChar(50)
-  validade       DateTime?  @db.Date
-  created_at     DateTime?  @default(now()) @db.DateTime(0)
-  updated_at     DateTime?  @updatedAt @db.DateTime(0)
+  custo_unitario Decimal?  @db.Decimal(12, 2)
+  valor_total    Decimal?  @db.Decimal(12, 2)
+  lote           String?   @db.VarChar(50)
+  validade       DateTime? @db.Date
+  created_at     DateTime? @default(now()) @db.DateTime(0)
+  updated_at     DateTime? @updatedAt @db.DateTime(0)
 
-  mscompra       mscompra?  @relation(fields: [codcompra], references: [codcompra], onDelete: NoAction, onUpdate: Cascade)
-  msproduto      msproduto? @relation(fields: [codproduto], references: [codproduto], onDelete: NoAction, onUpdate: NoAction)
+  mscompra  mscompra?  @relation(fields: [codcompra], references: [codcompra], onDelete: NoAction, onUpdate: Cascade)
+  msproduto msproduto? @relation(fields: [codproduto], references: [codproduto], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([codcompra], map: "idx_codcompra")
   @@index([codproduto], map: "idx_compra_codproduto")
 }
 
 model msconfiguracao_empresa {
-  id                Int      @id @default(autoincrement())
-  margem_alvo       Decimal  @db.Decimal(5,2)
-  margem_minima     Decimal  @db.Decimal(5,2)
-  permite_prejuizo  Boolean  @default(false)
+  id                            Int     @id @default(autoincrement())
+  margem_alvo                   Decimal @db.Decimal(5, 2)
+  margem_minima                 Decimal @db.Decimal(5, 2)
+  permite_prejuizo              Boolean @default(false)
   permite_desconto_acima_limite Boolean @default(false)
-  dias_promocao_padrao Int?
-  controlar_lotes   Boolean  @default(false)
-  controlar_validade Boolean @default(false)
-  
-  // Configuracoes da Loja
-  nome_loja         String?  @db.VarChar(100)
-  telefone_loja     String?  @db.VarChar(20)
-  chave_pix         String?  @db.VarChar(255)
-  endereco_loja     String?  @db.VarChar(255)
-  instagram_loja    String?  @db.VarChar(100)
-  facebook_loja     String?  @db.VarChar(100)
-  
-  // Configuracoes Operacionais
-  cadastro_rapido_cliente Boolean @default(true)
-  venda_sem_estoque       Boolean @default(true)
-  exigir_fornecedor       Boolean @default(true)
-  venda_qualquer_fornecedor Boolean @default(true)
-  venda_sem_preco         Boolean @default(false)
+  dias_promocao_padrao          Int?
+  controlar_lotes               Boolean @default(false)
+  controlar_validade            Boolean @default(false)
+  atualizacao_custo_compra      String? @default("PERGUNTAR") @db.VarChar(50)
 
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+  // Configuracoes da Loja
+  nome_loja      String? @db.VarChar(100)
+  telefone_loja  String? @db.VarChar(20)
+  chave_pix      String? @db.VarChar(255)
+  endereco_loja  String? @db.VarChar(255)
+  instagram_loja String? @db.VarChar(100)
+  facebook_loja  String? @db.VarChar(100)
+
+  // Configuracoes Operacionais
+  cadastro_rapido_cliente   Boolean @default(true)
+  venda_sem_estoque         Boolean @default(true)
+  exigir_fornecedor         Boolean @default(true)
+  venda_qualquer_fornecedor Boolean @default(true)
+  venda_sem_preco           Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model mstabela_preco {
-  codpreco       Int       @id @default(autoincrement())
-  codproduto     Int
-  preco_custo    Decimal   @db.Decimal(12,2)
-  preco_venda    Decimal   @db.Decimal(12,2)
-  data_inicio    DateTime  @default(now())
-  data_fim       DateTime? 
-  ativo          String?   @default("S") @db.Char(1)
-  desconto_maximo Decimal? @db.Decimal(5,2) @default(0)
-  preco_cartao   Decimal?  @db.Decimal(12,2) @default(0)
-  
-  created_at     DateTime  @default(now())
-  created_by     Int?      
-  
-  msproduto      msproduto @relation(fields: [codproduto], references: [codproduto])
+  codpreco        Int       @id @default(autoincrement())
+  codproduto      Int
+  preco_custo     Decimal   @db.Decimal(12, 2)
+  preco_venda     Decimal   @db.Decimal(12, 2)
+  data_inicio     DateTime  @default(now())
+  data_fim        DateTime?
+  ativo           String?   @default("S") @db.Char(1)
+  desconto_maximo Decimal?  @default(0) @db.Decimal(5, 2)
+  preco_cartao    Decimal?  @default(0) @db.Decimal(12, 2)
+
+  created_at DateTime @default(now())
+  created_by Int?
+
+  msproduto msproduto @relation(fields: [codproduto], references: [codproduto])
 }
 
 model mspromocao {
-  codpromocao    Int       @id @default(autoincrement())
-  nome           String    @db.VarChar(100)
-  tipo_geral     String    @db.VarChar(20)
-  valor_geral    Decimal   @db.Decimal(12, 2)
-  data_inicio    DateTime  @db.Date
-  data_fim       DateTime  @db.Date
-  prioridade     Int       @default(1) 
-  ativo          String?   @default("S") @db.Char(1)
-  created_by     Int?
-  
-  itens          mspromocao_item[]
+  codpromocao Int      @id @default(autoincrement())
+  nome        String   @db.VarChar(100)
+  tipo_geral  String   @db.VarChar(20)
+  valor_geral Decimal  @db.Decimal(12, 2)
+  data_inicio DateTime @db.Date
+  data_fim    DateTime @db.Date
+  prioridade  Int      @default(1)
+  ativo       String?  @default("S") @db.Char(1)
+  created_by  Int?
+
+  itens mspromocao_item[]
 }
 
 model mspromocao_item {
-  id                  Int        @id @default(autoincrement())
-  codpromocao         Int
-  codproduto          Int
-  tipo_opcional       String?    @db.VarChar(20) 
-  valor_opcional      Decimal?   @db.Decimal(12, 2)
-  
-  mspromocao  mspromocao @relation(fields: [codpromocao], references: [codpromocao])
-  msproduto   msproduto  @relation(fields: [codproduto], references: [codproduto])
+  id             Int      @id @default(autoincrement())
+  codpromocao    Int
+  codproduto     Int
+  tipo_opcional  String?  @db.VarChar(20)
+  valor_opcional Decimal? @db.Decimal(12, 2)
+
+  mspromocao mspromocao @relation(fields: [codpromocao], references: [codpromocao])
+  msproduto  msproduto  @relation(fields: [codproduto], references: [codproduto])
 }
 
 model mskit {
-  id          Int      @id @default(autoincrement())
-  uuid        String?  @default(uuid()) @db.VarChar(36)
-  nome        String   @db.VarChar(200)
-  descricao   String?  @db.Text
-  preco_kit   Decimal  @db.Decimal(12, 2)
-  ativo       String?  @default("S") @db.Char(1)
+  id          Int       @id @default(autoincrement())
+  uuid        String?   @default(uuid()) @db.VarChar(36)
+  nome        String    @db.VarChar(200)
+  descricao   String?   @db.Text
+  preco_kit   Decimal   @db.Decimal(12, 2)
+  ativo       String?   @default("S") @db.Char(1)
   data_inicio DateTime? @db.Date
   data_fim    DateTime? @db.Date
   created_at  DateTime? @default(now()) @db.DateTime(0)
   updated_at  DateTime? @updatedAt @db.DateTime(0)
   created_by  Int?
   updated_by  Int?
-  
-  itens       mskit_item[]
-  pedidos     mspedido_kit[]
+
+  itens   mskit_item[]
+  pedidos mspedido_kit[]
 }
 
 model mskit_item {
-  id         Int      @id @default(autoincrement())
-  uuid       String?  @default(uuid()) @db.VarChar(36)
+  id         Int     @id @default(autoincrement())
+  uuid       String? @default(uuid()) @db.VarChar(36)
   kit_id     Int
   produto_id Int
   quantidade Int
-  
-  kit        mskit    @relation(fields: [kit_id], references: [id])
-  produto    msproduto @relation(fields: [produto_id], references: [codproduto])
+
+  kit     mskit     @relation(fields: [kit_id], references: [id])
+  produto msproduto @relation(fields: [produto_id], references: [codproduto])
 }
 
 model mspedido_kit {
@@ -474,28 +483,86 @@ model mspedido_kit {
   valor_original Decimal  @db.Decimal(12, 2)
   valor_kit      Decimal  @db.Decimal(12, 2)
   desconto       Decimal? @db.Decimal(12, 2)
-  
-  pedido         mspedido @relation(fields: [pedido_id], references: [numpedido])
-  kit            mskit    @relation(fields: [kit_id], references: [id])
-  itens          mspedido_item[]
+
+  pedido mspedido        @relation(fields: [pedido_id], references: [numpedido])
+  kit    mskit           @relation(fields: [kit_id], references: [id])
+  itens  mspedido_item[]
 }
 
 model ms_log_auditoria {
-  id               Int       @id @default(autoincrement())
-  codusuario       Int?      
-  nome_usuario     String?   @db.VarChar(100) 
-  acao             String    @db.VarChar(50)  // "CRIAR", "ALTERAR", "EXCLUIR", "CANCELAR"
-  tabela           String    @db.VarChar(50)  // Ex: "msproduto"
-  registro_id      String?   @db.VarChar(50)  // ID do produto/pedido que sofreu acao
-  
-  campo            String?   @db.VarChar(50)  // Ex: "preco_venda" ou "descricao"
-  valor_antigo     String?   @db.Text         // Ex: "100.00"
-  valor_novo       String?   @db.Text         // Ex: "120.00"
-  
-  motivo           String?   @db.Text         // Justificativa do usuario
-  data_acao        DateTime  @default(now()) @db.DateTime(0)
+  id           Int     @id @default(autoincrement())
+  codusuario   Int?
+  nome_usuario String? @db.VarChar(100)
+  acao         String  @db.VarChar(50) // "CRIAR", "ALTERAR", "EXCLUIR", "CANCELAR"
+  tabela       String  @db.VarChar(50) // Ex: "msproduto"
+  registro_id  String? @db.VarChar(50) // ID do produto/pedido que sofreu acao
+
+  campo        String? @db.VarChar(50) // Ex: "preco_venda" ou "descricao"
+  valor_antigo String? @db.Text // Ex: "100.00"
+  valor_novo   String? @db.Text // Ex: "120.00"
+
+  motivo    String?  @db.Text // Justificativa do usuario
+  data_acao DateTime @default(now()) @db.DateTime(0)
 }
 
+model mscaixa {
+  codcaixa   Int       @id @default(autoincrement())
+  nome       String    @db.VarChar(100)
+  codfilial  Int
+  ativo      Boolean   @default(true)
+  created_at DateTime? @default(now()) @db.DateTime(0)
+  updated_at DateTime? @updatedAt @db.DateTime(0)
 
+  sessoes mscaixa_sessao[]
+}
 
+model mscaixa_sessao {
+  codsessao          Int       @id @default(autoincrement())
+  codcaixa           Int
+  codusur_abertura   Int
+  codusur_fechamento Int?
+  data_abertura      DateTime  @default(now()) @db.DateTime(0)
+  data_fechamento    DateTime? @db.DateTime(0)
+  valor_abertura     Decimal   @default(0) @db.Decimal(12, 2)
+  valor_fechamento   Decimal?  @db.Decimal(12, 2)
+  diferenca          Decimal?  @db.Decimal(12, 2)
+  motivo_diferenca   String?   @db.Text
+  status             String    @default("ABERTO") @db.VarChar(20)
+  created_at         DateTime? @default(now()) @db.DateTime(0)
+  updated_at         DateTime? @updatedAt @db.DateTime(0)
 
+  caixa              mscaixa             @relation(fields: [codcaixa], references: [codcaixa])
+  usuario_abertura   msusuario           @relation("sessao_abertura", fields: [codusur_abertura], references: [codusur])
+  usuario_fechamento msusuario?          @relation("sessao_fechamento", fields: [codusur_fechamento], references: [codusur])
+  movimentos         mscaixa_movimento[]
+}
+
+model mscaixa_movimento {
+  codmovimento       Int       @id @default(autoincrement())
+  codsessao          Int
+  codusur            Int
+  data_movimento     DateTime  @default(now()) @db.DateTime(0)
+  tipo               String    @db.VarChar(10) // ENTRADA, SAIDA
+  categoria          String    @db.VarChar(50) // VENDA, SUPRIMENTO, SANGRIA, DESPESA
+  valor              Decimal   @db.Decimal(12, 2)
+  codplano_pagamento Int
+  numpedido          Int?
+  observacao         String?   @db.Text
+  created_at         DateTime? @default(now()) @db.DateTime(0)
+
+  sessao          mscaixa_sessao   @relation(fields: [codsessao], references: [codsessao])
+  usuario         msusuario        @relation(fields: [codusur], references: [codusur])
+  pedido          mspedido?        @relation(fields: [numpedido], references: [numpedido])
+  plano_pagamento MSPLANOPAGAMENTO @relation(fields: [codplano_pagamento], references: [CODPLPAG])
+}
+
+model mspedido_pagamento {
+  codpedpag          Int       @id @default(autoincrement())
+  numpedido          Int
+  codplano_pagamento Int
+  valor              Decimal   @db.Decimal(12, 2)
+  created_at         DateTime? @default(now()) @db.DateTime(0)
+
+  pedido          mspedido         @relation(fields: [numpedido], references: [numpedido])
+  plano_pagamento MSPLANOPAGAMENTO @relation(fields: [codplano_pagamento], references: [CODPLPAG])
+}

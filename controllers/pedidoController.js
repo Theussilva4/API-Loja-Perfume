@@ -178,7 +178,8 @@ export async function criarPedido(req, res) {
       observacoes,
       status, // EM_DIGITACAO ou FINALIZADO
       produtos = [], // avulsos
-      kits = []      // kits comerciais
+      kits = [],      // kits comerciais
+      pagamentos = [] // pagamentos múltiplos: { codplano_pagamento, valor }
     } = req.body;
 
     // Se vier itens (legado) e não tiver produtos, mapear para produtos para retrocompatibilidade
@@ -195,6 +196,16 @@ export async function criarPedido(req, res) {
     const filial = codfilial ? Number(codfilial) : 1;
 
     const result = await prisma.$transaction(async (tx) => {
+      let sessaoCaixa = null;
+      if (finalStatus === "FINALIZADO") {
+        sessaoCaixa = await tx.mscaixa_sessao.findFirst({
+          where: { codusur_abertura: codusur_criou ? Number(codusur_criou) : undefined, status: 'ABERTO' }
+        });
+        if (!sessaoCaixa) {
+          throw new Error("Você precisa ter um caixa aberto para finalizar uma venda.");
+        }
+      }
+
       let subtotalGlobal = 0;
       
       // 1. Processar os Avulsos (Produtos Normais)
@@ -330,6 +341,53 @@ export async function criarPedido(req, res) {
         for (const item of todosOsItensParaGravar) {
           await baixarEstoqueFefo(tx, Number(item.codproduto), filial, Number(item.quantidade), pedido.numpedido);
         }
+
+        // 7. Salvar pagamentos e movimento de caixa
+        if (pagamentos && pagamentos.length > 0) {
+          for (const pag of pagamentos) {
+            const valorPag = parseFloat(pag.valor);
+            await tx.mspedido_pagamento.create({
+              data: {
+                numpedido: pedido.numpedido,
+                codplano_pagamento: Number(pag.codplano_pagamento),
+                valor: valorPag
+              }
+            });
+            await tx.mscaixa_movimento.create({
+              data: {
+                codsessao: sessaoCaixa.codsessao,
+                codusur: codusur_criou ? Number(codusur_criou) : sessaoCaixa.codusur_abertura,
+                tipo: 'ENTRADA',
+                categoria: 'VENDA',
+                valor: valorPag,
+                codplano_pagamento: Number(pag.codplano_pagamento),
+                numpedido: pedido.numpedido,
+                observacao: `Venda ${codigo_venda}`
+              }
+            });
+          }
+        } else if (formaPagamento) {
+          // Fallback para legado
+          await tx.mspedido_pagamento.create({
+            data: {
+              numpedido: pedido.numpedido,
+              codplano_pagamento: Number(formaPagamento),
+              valor: valor_total_venda
+            }
+          });
+          await tx.mscaixa_movimento.create({
+            data: {
+              codsessao: sessaoCaixa.codsessao,
+              codusur: codusur_criou ? Number(codusur_criou) : sessaoCaixa.codusur_abertura,
+              tipo: 'ENTRADA',
+              categoria: 'VENDA',
+              valor: valor_total_venda,
+              codplano_pagamento: Number(formaPagamento),
+              numpedido: pedido.numpedido,
+              observacao: `Venda ${codigo_venda}`
+            }
+          });
+        }
       }
 
       // Retornar pedido populado
@@ -389,6 +447,16 @@ export async function alterarStatus(req, res) {
 
     if (status === "FINALIZADO" && pedidoAnterior.status !== "FINALIZADO") {
       await prisma.$transaction(async (tx) => {
+        // Verifica caixa aberto
+        // Precisamos do codusur_criou. Se não vier no body, usamos do pedidoAnterior.
+        const usrId = req.body.codusur_cancelou || req.body.codusur || pedidoAnterior.codusur_criou;
+        const sessaoCaixa = await tx.mscaixa_sessao.findFirst({
+          where: { codusur_abertura: usrId ? Number(usrId) : undefined, status: 'ABERTO' }
+        });
+        if (!sessaoCaixa) {
+          throw new Error("Você precisa ter um caixa aberto para finalizar uma venda.");
+        }
+
         await tx.mspedido.update({
           where: { numpedido: Number(id) },
           data: { status }
@@ -398,8 +466,29 @@ export async function alterarStatus(req, res) {
           const filial = pedidoAnterior.codfilial || 1;
           await baixarEstoqueFefo(tx, item.codproduto, filial, item.quantidade, pedidoAnterior.numpedido);
         }
+
+        // Registrar o movimento de caixa e pagamento
+        await tx.mspedido_pagamento.create({
+          data: {
+            numpedido: pedidoAnterior.numpedido,
+            codplano_pagamento: Number(pedidoAnterior.CODPLPAG || 1),
+            valor: pedidoAnterior.valor_total
+          }
+        });
+        await tx.mscaixa_movimento.create({
+          data: {
+            codsessao: sessaoCaixa.codsessao,
+            codusur: usrId ? Number(usrId) : 0,
+            tipo: 'ENTRADA',
+            categoria: 'VENDA',
+            valor: pedidoAnterior.valor_total,
+            codplano_pagamento: Number(pedidoAnterior.CODPLPAG || 1),
+            numpedido: pedidoAnterior.numpedido,
+            observacao: `Venda ${pedidoAnterior.codigo_venda}`
+          }
+        });
       });
-      return res.json({ mensagem: "Status alterado e estoque baixado." });
+      return res.json({ mensagem: "Status alterado, estoque baixado e movimentação registrada no caixa." });
     }
 
     const pedido = await prisma.mspedido.update({
@@ -429,7 +518,9 @@ export async function atualizarPedido(req, res) {
       valor_frete,
       observacoes,
       produtos = [], // avulsos
-      kits = []      // kits comerciais
+      kits = [],      // kits comerciais
+      pagamentos = [], // pagamentos múltiplos
+      codusur // Usuário que está realizando a ação
     } = req.body;
 
     const pedidoAnterior = await prisma.mspedido.findUnique({
@@ -448,9 +539,22 @@ export async function atualizarPedido(req, res) {
 
     // Transação para deletar itens, recriar, e atualizar dados do pedido
     const pedido = await prisma.$transaction(async (tx) => {
+      let sessaoCaixa = null;
+      if (pedidoAnterior.status !== "FINALIZADO" && (status === "FINALIZADO" || status === "FINALIZADA")) {
+        sessaoCaixa = await tx.mscaixa_sessao.findFirst({
+          // Verifica se o usuário que está alterando tem caixa aberto
+          where: { codusur_abertura: codusur ? Number(codusur) : undefined, status: 'ABERTO' }
+        });
+        if (!sessaoCaixa) {
+          throw new Error("Você precisa ter um caixa aberto para finalizar uma venda.");
+        }
+      }
+
       // Remover itens e kits antigos
       await tx.mspedido_item.deleteMany({ where: { numpedido: Number(id) } });
       await tx.mspedido_kit.deleteMany({ where: { pedido_id: Number(id) } });
+      // Remover pagamentos antigos, se existirem (para caso estejamos re-gravando)
+      await tx.mspedido_pagamento.deleteMany({ where: { numpedido: Number(id) } });
 
       let subtotalGlobal = 0;
       
@@ -566,6 +670,52 @@ export async function atualizarPedido(req, res) {
       if (pedidoAnterior.status !== "FINALIZADO" && (status === "FINALIZADO" || status === "FINALIZADA")) {
         for (const item of todosOsItensParaGravar) {
           await baixarEstoqueFefo(tx, Number(item.codproduto), filial, Number(item.quantidade), updated.numpedido);
+        }
+
+        // Inserir os pagamentos no pedido e no movimento de caixa
+        if (pagamentos && pagamentos.length > 0) {
+          for (const pag of pagamentos) {
+            const valorPag = parseFloat(pag.valor);
+            await tx.mspedido_pagamento.create({
+              data: {
+                numpedido: updated.numpedido,
+                codplano_pagamento: Number(pag.codplano_pagamento),
+                valor: valorPag
+              }
+            });
+            await tx.mscaixa_movimento.create({
+              data: {
+                codsessao: sessaoCaixa.codsessao,
+                codusur: (req.body.codusur_criou || codusur) ? Number(req.body.codusur_criou || codusur) : sessaoCaixa.codusur_abertura,
+                tipo: 'ENTRADA',
+                categoria: 'VENDA',
+                valor: valorPag,
+                codplano_pagamento: Number(pag.codplano_pagamento),
+                numpedido: updated.numpedido,
+                observacao: `Venda ${updated.codigo_venda}`
+              }
+            });
+          }
+        } else if (formaPagamento) {
+          await tx.mspedido_pagamento.create({
+            data: {
+              numpedido: updated.numpedido,
+              codplano_pagamento: Number(formaPagamento),
+              valor: valor_total_venda
+            }
+          });
+          await tx.mscaixa_movimento.create({
+            data: {
+              codsessao: sessaoCaixa.codsessao,
+              codusur: (req.body.codusur_criou || codusur) ? Number(req.body.codusur_criou || codusur) : sessaoCaixa.codusur_abertura,
+              tipo: 'ENTRADA',
+              categoria: 'VENDA',
+              valor: valor_total_venda,
+              codplano_pagamento: Number(formaPagamento),
+              numpedido: updated.numpedido,
+              observacao: `Venda ${updated.codigo_venda}`
+            }
+          });
         }
       }
 
