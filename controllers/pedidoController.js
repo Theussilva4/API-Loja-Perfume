@@ -703,10 +703,17 @@ export async function atualizarPedido(req, res) {
           await baixarEstoqueFefo(tx, Number(item.codproduto), filial, Number(item.quantidade), updated.numpedido);
         }
 
-        // Inserir os pagamentos no pedido e no movimento de caixa
+        // Buscar os planos de pagamento para saber se é crediário
+        const todosPlanos = await tx.mSPLANOPAGAMENTO.findMany();
+        const planosMap = {};
+        for(const p of todosPlanos) planosMap[p.CODPLPAG] = p.tipo_pagamento;
+
+        // Inserir os pagamentos no pedido e no movimento de caixa (ou contas a receber)
         if (pagamentos && pagamentos.length > 0) {
           for (const pag of pagamentos) {
             const valorPag = parseFloat(pag.valor);
+            const isCrediario = planosMap[Number(pag.codplano_pagamento)] === 'CREDIARIO';
+
             await tx.mspedido_pagamento.create({
               data: {
                 numpedido: updated.numpedido,
@@ -714,20 +721,37 @@ export async function atualizarPedido(req, res) {
                 valor: valorPag
               }
             });
-            await tx.mscaixa_movimento.create({
-              data: {
-                codsessao: sessaoCaixa.codsessao,
-                codusur: (req.body.codusur_criou || codusur) ? Number(req.body.codusur_criou || codusur) : sessaoCaixa.codusur_abertura,
-                tipo: 'ENTRADA',
-                categoria: 'VENDA',
-                valor: valorPag,
-                codplano_pagamento: Number(pag.codplano_pagamento),
-                numpedido: updated.numpedido,
-                observacao: `Venda ${updated.codigo_venda}`
-              }
-            });
+
+            if (isCrediario) {
+              await tx.mscontas_receber.create({
+                data: {
+                  codcliente: Number(codcliente),
+                  codfilial: filial,
+                  numpedido: updated.numpedido,
+                  valor_total: valorPag,
+                  data_emissao: new Date(),
+                  status: "PENDENTE",
+                  observacoes: `Venda ${updated.codigo_venda} (Múltiplos)`
+                }
+              });
+            } else {
+              await tx.mscaixa_movimento.create({
+                data: {
+                  codsessao: sessaoCaixa.codsessao,
+                  codusur: (req.body.codusur_criou || codusur) ? Number(req.body.codusur_criou || codusur) : sessaoCaixa.codusur_abertura,
+                  tipo: 'ENTRADA',
+                  categoria: 'VENDA',
+                  valor: valorPag,
+                  codplano_pagamento: Number(pag.codplano_pagamento),
+                  numpedido: updated.numpedido,
+                  observacao: `Venda ${updated.codigo_venda}`
+                }
+              });
+            }
           }
         } else if (formaPagamento) {
+          const isCrediario = planosMap[Number(formaPagamento)] === 'CREDIARIO';
+
           await tx.mspedido_pagamento.create({
             data: {
               numpedido: updated.numpedido,
@@ -735,18 +759,33 @@ export async function atualizarPedido(req, res) {
               valor: valor_total_venda
             }
           });
-          await tx.mscaixa_movimento.create({
-            data: {
-              codsessao: sessaoCaixa.codsessao,
-              codusur: (req.body.codusur_criou || codusur) ? Number(req.body.codusur_criou || codusur) : sessaoCaixa.codusur_abertura,
-              tipo: 'ENTRADA',
-              categoria: 'VENDA',
-              valor: valor_total_venda,
-              codplano_pagamento: Number(formaPagamento),
-              numpedido: updated.numpedido,
-              observacao: `Venda ${updated.codigo_venda}`
-            }
-          });
+
+          if (isCrediario) {
+            await tx.mscontas_receber.create({
+              data: {
+                codcliente: Number(codcliente),
+                codfilial: filial,
+                numpedido: updated.numpedido,
+                valor_total: valor_total_venda,
+                data_emissao: new Date(),
+                status: "PENDENTE",
+                observacoes: `Venda ${updated.codigo_venda}`
+              }
+            });
+          } else {
+            await tx.mscaixa_movimento.create({
+              data: {
+                codsessao: sessaoCaixa.codsessao,
+                codusur: (req.body.codusur_criou || codusur) ? Number(req.body.codusur_criou || codusur) : sessaoCaixa.codusur_abertura,
+                tipo: 'ENTRADA',
+                categoria: 'VENDA',
+                valor: valor_total_venda,
+                codplano_pagamento: Number(formaPagamento),
+                numpedido: updated.numpedido,
+                observacao: `Venda ${updated.codigo_venda}`
+              }
+            });
+          }
         }
       }
 
