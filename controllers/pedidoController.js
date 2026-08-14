@@ -350,7 +350,13 @@ export async function criarPedido(req, res) {
               data: {
                 numpedido: pedido.numpedido,
                 codplano_pagamento: Number(pag.codplano_pagamento),
-                valor: valorPag
+                valor: valorPag,
+                bandeira: pag.bandeira || null,
+                parcelas: pag.parcelas ? Number(pag.parcelas) : null,
+                acrescimo_percentual: pag.acrescimo_percentual ? Number(pag.acrescimo_percentual) : null,
+                valor_acrescimo: pag.valor_acrescimo ? Number(pag.valor_acrescimo) : null,
+                valor_parcela: pag.valor_parcela ? Number(pag.valor_parcela) : null,
+                modo_cobranca: pag.modo_cobranca || null
               }
             });
             await tx.mscaixa_movimento.create({

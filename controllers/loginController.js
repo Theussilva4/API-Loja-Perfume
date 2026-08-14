@@ -39,7 +39,8 @@ export async function login(req, res) {
       nome: usuario.nome,          // ⚠️ CONFERE esse campo no banco
       email: usuario.email,
       tipo: usuario.tipo_usuario,
-      codvendedor: usuario.codvendedor
+      codvendedor: usuario.codvendedor,
+      codfilial: usuario.codfilial
     },
     forceChangePassword
   });

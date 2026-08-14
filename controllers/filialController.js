@@ -4,7 +4,9 @@ import prisma from "../prismaClient.js"
 
 export async function listarFilial(req, res) {
   try {
-    const filial = await prisma.msfilial.findMany()
+    const filial = await prisma.msfilial.findMany({
+      where: { ativo: 'S' }
+    })
     res.json(filial)
   } catch (error) {
     console.error(error)

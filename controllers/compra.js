@@ -18,7 +18,7 @@ export const getCompras = async (req, res) => {
         msfornecedor: { select: { nome: true } },
         _count: { select: { mscompra_item: true } }
       },
-      orderBy: { data_compra: 'desc' }
+      orderBy: { created_at: 'desc' }
     });
     res.json(compras);
   } catch (error) {

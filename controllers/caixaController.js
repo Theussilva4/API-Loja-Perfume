@@ -58,12 +58,12 @@ export const editarCaixa = async (req, res) => {
     }
 };
 
-// 2. Status do Caixa atual do usuário (Verifica se ele tem sessão aberta)
+// 2. Status do Caixa atual do usuário (Verifica se ele tem sessão aberta e fecha de dias anteriores)
 export const statusCaixa = async (req, res) => {
     try {
         const codusur = req.usuario.id; // assumindo que middleware de auth insere user
         
-        const sessao = await prisma.mscaixa_sessao.findFirst({
+        let sessao = await prisma.mscaixa_sessao.findFirst({
             where: {
                 status: 'ABERTO'
             },
@@ -74,6 +74,68 @@ export const statusCaixa = async (req, res) => {
 
         if (!sessao) {
             return res.json({ status: 'FECHADO', sessao: null });
+        }
+
+        // Verifica se a sessão é de um dia anterior e força o fechamento
+        const dataAbertura = new Date(sessao.data_abertura);
+        const agora = new Date();
+        // Ajusta para o timezone do Brasil para comparar as datas corretamente (GMT-3)
+        const tzBr = "America/Sao_Paulo";
+        const dataAberturaBr = new Date(dataAbertura.toLocaleString("en-US", { timeZone: tzBr }));
+        const hojeBr = new Date(agora.toLocaleString("en-US", { timeZone: tzBr }));
+
+        if (
+            dataAberturaBr.getFullYear() !== hojeBr.getFullYear() ||
+            dataAberturaBr.getMonth() !== hojeBr.getMonth() ||
+            dataAberturaBr.getDate() !== hojeBr.getDate()
+        ) {
+            // A sessão é de outro dia. Vamos forçar o fechamento.
+            // Para saldo_esperado, precisaremos somar os movimentos da sessão (Dinheiro).
+            const planosDinheiro = await prisma.mSPLANOPAGAMENTO.findMany({
+                where: { tipo_pagamento: 'A_VISTA', DESCRICAO: { contains: 'DINHEIRO' } }
+            });
+            const codsDinheiro = planosDinheiro.map(p => p.CODPLPAG);
+
+            const movimentos = await prisma.mscaixa_movimento.findMany({
+                where: { codsessao: sessao.codsessao }
+            });
+
+            let saldoEsperadoDinheiro = 0;
+            for (const mov of movimentos) {
+                if (codsDinheiro.includes(mov.codplano_pagamento)) {
+                    if (mov.tipo === 'ENTRADA') saldoEsperadoDinheiro += parseFloat(mov.valor);
+                    if (mov.tipo === 'SAIDA') saldoEsperadoDinheiro -= parseFloat(mov.valor);
+                }
+            }
+
+            // Atualiza a sessão para fechada, sem valor informado pelo usuário (diferença será zero para não gerar pendência falsa, ou podemos gerar uma diferença)
+            // Aqui assumimos que o valor do fechamento é igual ao saldo esperado, pois não houve contagem física.
+            await prisma.mscaixa_sessao.update({
+                where: { codsessao: sessao.codsessao },
+                data: {
+                    status: 'FECHADO',
+                    codusur_fechamento: codusur,
+                    data_fechamento: agora,
+                    valor_fechamento: saldoEsperadoDinheiro,
+                    diferenca: 0,
+                    motivo_diferenca: 'Fechamento automático por virada de dia (esquecido aberto)'
+                }
+            });
+
+            // Grava no log de auditoria
+            await prisma.ms_log_auditoria.create({
+                data: {
+                    codusuario: codusur,
+                    nome_usuario: req.usuario.nome || 'Sistema',
+                    acao: 'ATUALIZAR',
+                    tabela: 'mscaixa_sessao',
+                    registro_id: String(sessao.codsessao),
+                    descricao: `Caixa fechado automaticamente (virada de dia). Sessão ${sessao.codsessao}. Saldo: ${saldoEsperadoDinheiro}`
+                }
+            });
+
+            // Como foi fechado automaticamente, reportamos FECHADO para o frontend
+            return res.json({ status: 'FECHADO', sessao: null, mensagemAviso: 'O caixa do dia anterior foi fechado automaticamente.' });
         }
 
         res.json({ status: 'ABERTO', sessao });

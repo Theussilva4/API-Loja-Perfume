@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 export const getDashboardMetrics = async (req, res) => {
   try {
-    const { dataInicial, dataFinal } = req.query;
+    const { dataInicial, dataFinal, codfilial } = req.query;
 
     const agora = new Date();
     const brtString = agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
@@ -17,6 +17,10 @@ export const getDashboardMetrics = async (req, res) => {
 
     let periodoInicio = inicioMes;
     let dataPedidoCondition = { gte: periodoInicio };
+    let pedidoConditionBase = { status: { not: "CANCELADO" } };
+    if (codfilial) {
+      pedidoConditionBase.codfilial = Number(codfilial);
+    }
 
     if (dataInicial) {
       const parts = dataInicial.split('-');
@@ -40,7 +44,7 @@ export const getDashboardMetrics = async (req, res) => {
     // ==========================================
 
     const pedidosHoje = await prisma.mspedido.findMany({
-      where: { data_pedido: { gte: hoje, lt: fimHoje }, status: { not: "CANCELADO" } },
+      where: { data_pedido: { gte: hoje, lt: fimHoje }, ...pedidoConditionBase },
       include: {
         mspedido_item: {
           include: {
@@ -53,12 +57,12 @@ export const getDashboardMetrics = async (req, res) => {
     });
 
     const pedidosMes = await prisma.mspedido.aggregate({
-      where: { data_pedido: { gte: inicioMes }, status: { not: "CANCELADO" } },
+      where: { data_pedido: { gte: inicioMes }, ...pedidoConditionBase },
       _sum: { valor_total: true }
     });
 
     const pedidosAno = await prisma.mspedido.aggregate({
-      where: { data_pedido: { gte: inicioAno }, status: { not: "CANCELADO" } },
+      where: { data_pedido: { gte: inicioAno }, ...pedidoConditionBase },
       _sum: { valor_total: true }
     });
 
@@ -102,8 +106,7 @@ export const getDashboardMetrics = async (req, res) => {
       by: ['codcliente'],
       where: {
         data_pedido: dataPedidoCondition,
-        status: { not: "CANCELADO" },
-        /* codcliente: { not: null } */
+        ...pedidoConditionBase
       },
       _sum: { valor_total: true },
       orderBy: { _sum: { valor_total: 'desc' } },
@@ -129,7 +132,7 @@ export const getDashboardMetrics = async (req, res) => {
     // ==========================================
     const maisVendidos = await prisma.mspedido_item.groupBy({
       by: ['codproduto'],
-      where: { mspedido: { data_pedido: dataPedidoCondition, status: { not: "CANCELADO" } } },
+      where: { mspedido: { data_pedido: dataPedidoCondition, ...pedidoConditionBase } },
       _sum: { quantidade: true },
       orderBy: { _sum: { quantidade: 'desc' } },
       take: 5,
@@ -155,7 +158,7 @@ export const getDashboardMetrics = async (req, res) => {
     quinzeDiasAtras.setDate(quinzeDiasAtras.getDate() - 14);
 
     const vendasGrafico = await prisma.mspedido.findMany({
-      where: { data_pedido: { gte: quinzeDiasAtras }, status: { not: "CANCELADO" } },
+      where: { data_pedido: { gte: quinzeDiasAtras }, ...pedidoConditionBase },
       select: { data_pedido: true, valor_total: true }
     });
 
@@ -187,14 +190,17 @@ export const getDashboardMetrics = async (req, res) => {
     // ==========================================
     // Para simplificar no Prisma sem QueryRaw complexas com JOIN, 
     // buscamos a data da ultima venda de cada produto que tem estoque
-    const estoqueDisponivel = await prisma.$queryRaw`
+    const filialQuery = codfilial ? `AND e.codfilial = ${Number(codfilial)}` : '';
+    const filialQueryPed = codfilial ? `AND ped.codfilial = ${Number(codfilial)}` : '';
+
+    const estoqueDisponivel = await prisma.$queryRawUnsafe(`
       SELECT p.codproduto, p.descricao, p.estoque_minimo, COALESCE(SUM(e.quantidade), 0) as saldo
       FROM msproduto p
-      LEFT JOIN msestoque e ON p.codproduto = e.codproduto
+      LEFT JOIN msestoque e ON p.codproduto = e.codproduto ${filialQuery}
       WHERE p.ativo = 'S'
       GROUP BY p.codproduto
       HAVING saldo > 0
-    `;
+    `);
 
     // Busca a ultima venda de produtos com estoque
     const ultimasVendasProd = await prisma.mspedido_item.groupBy({
@@ -202,17 +208,17 @@ export const getDashboardMetrics = async (req, res) => {
       _max: { 'mspedido': { data_pedido: true } } // Isso não funciona direto no prisma groupBy se nao for aggregate.
     }).catch(() => []); 
     
-    // Vamos usar queryRaw para facilitar o Sem Giro
-    const semGiroList = await prisma.$queryRaw`
+    // Vamos usar queryRawUnsafe para facilitar o Sem Giro
+    const semGiroList = await prisma.$queryRawUnsafe(`
       SELECT p.codproduto, p.descricao, MAX(ped.data_pedido) as ultima_venda, COALESCE(SUM(e.quantidade), 0) as saldo
       FROM msproduto p
-      LEFT JOIN msestoque e ON p.codproduto = e.codproduto
+      LEFT JOIN msestoque e ON p.codproduto = e.codproduto ${filialQuery}
       LEFT JOIN mspedido_item pi ON pi.codproduto = p.codproduto
-      LEFT JOIN mspedido ped ON ped.numpedido = pi.numpedido AND ped.status != 'CANCELADO'
+      LEFT JOIN mspedido ped ON ped.numpedido = pi.numpedido AND ped.status != 'CANCELADO' ${filialQueryPed}
       WHERE p.ativo = 'S'
       GROUP BY p.codproduto
       HAVING saldo > 0
-    `;
+    `);
 
     const produtosSemGiro = {
       "30d": [],
@@ -241,15 +247,15 @@ export const getDashboardMetrics = async (req, res) => {
     // ==========================================
     // 6. ESTOQUE BAIXO
     // ==========================================
-    const estoqueBaixoList = await prisma.$queryRaw`
+    const estoqueBaixoList = await prisma.$queryRawUnsafe(`
       SELECT p.codproduto, p.descricao, p.estoque_minimo, COALESCE(SUM(e.quantidade), 0) as saldo
       FROM msproduto p
-      LEFT JOIN msestoque e ON p.codproduto = e.codproduto
+      LEFT JOIN msestoque e ON p.codproduto = e.codproduto ${filialQuery}
       WHERE p.ativo = 'S'
       GROUP BY p.codproduto
       HAVING saldo <= p.estoque_minimo
       LIMIT 10
-    `;
+    `);
 
     // ==========================================
     // 7. ÚLTIMOS PEDIDOS
@@ -257,8 +263,73 @@ export const getDashboardMetrics = async (req, res) => {
     const ultimosPedidos = await prisma.mspedido.findMany({
       take: 5,
       orderBy: { data_pedido: "desc" },
+      where: { ...pedidoConditionBase },
       include: { mscliente: { select: { nome: true } } },
     });
+
+    // ==========================================
+    // 8. VALIDADES (FEFO) E PENDÊNCIAS
+    // ==========================================
+    const filialCondition = codfilial ? { codfilial: Number(codfilial) } : {};
+    
+    const lotesValidades = await prisma.msestoque_lote.findMany({
+      where: { 
+        quantidade: { gt: 0 }, 
+        lote: { not: 'PADRAO' },
+        ...filialCondition
+      }
+    });
+
+    const hojeValidade = new Date();
+    const em30Dias = new Date(); em30Dias.setDate(em30Dias.getDate() + 30);
+    const em90Dias = new Date(); em90Dias.setDate(em90Dias.getDate() + 90);
+
+    let valVencidos = 0;
+    let valVence30 = 0;
+    let valVence90 = 0;
+
+    lotesValidades.forEach(lote => {
+      const v = new Date(lote.validade);
+      if (v < hojeValidade) valVencidos++;
+      else if (v <= em30Dias) valVence30++;
+      else if (v <= em90Dias) valVence90++;
+    });
+
+    const produtosRastreados = codfilial ? await prisma.$queryRaw`
+      SELECT e.codproduto, SUM(e.quantidade) as total_estoque
+      FROM msestoque e
+      JOIN msproduto p ON e.codproduto = p.codproduto
+      WHERE p.controla_validade = 'S' AND e.quantidade > 0 AND e.codfilial = ${Number(codfilial)}
+      GROUP BY e.codproduto
+    ` : await prisma.$queryRaw`
+      SELECT e.codproduto, SUM(e.quantidade) as total_estoque
+      FROM msestoque e
+      JOIN msproduto p ON e.codproduto = p.codproduto
+      WHERE p.controla_validade = 'S' AND e.quantidade > 0
+      GROUP BY e.codproduto
+    `;
+
+    const lotesMap = await prisma.msestoque_lote.groupBy({
+      by: ['codproduto'],
+      where: { 
+        lote: { not: 'PADRAO' },
+        ...filialCondition
+      },
+      _sum: { quantidade: true }
+    });
+    const qtdLotesMap = lotesMap.reduce((acc, l) => {
+      acc[l.codproduto] = l._sum.quantidade || 0;
+      return acc;
+    }, {});
+
+    let pendenciasRastreabilidade = 0;
+    for (const prod of produtosRastreados) {
+      const emEstoque = Number(prod.total_estoque);
+      const rastreado = qtdLotesMap[prod.codproduto] || 0;
+      if (emEstoque > rastreado) {
+        pendenciasRastreabilidade++;
+      }
+    }
 
     // Enviar resposta
     res.json({
@@ -292,7 +363,13 @@ export const getDashboardMetrics = async (req, res) => {
         descricao: e.descricao,
         saldo: Number(e.saldo),
         minimo: e.estoque_minimo
-      }))
+      })),
+      fefo: {
+        vencidos: valVencidos,
+        vence30: valVence30,
+        vence90: valVence90,
+        pendencias: pendenciasRastreabilidade
+      }
     });
 
   } catch (error) {

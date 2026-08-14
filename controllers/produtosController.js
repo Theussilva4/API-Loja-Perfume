@@ -16,6 +16,17 @@ export async function listarProdutos(req, res) {
       }
     });
 
+    const estoques = await prisma.msestoque.groupBy({
+      by: ['codproduto'],
+      _sum: { quantidade: true }
+    });
+    
+    const estoqueMap = estoques.reduce((acc, e) => {
+      acc[e.codproduto] = e._sum.quantidade || 0;
+      return acc;
+    }, {});
+
+
     // Se o produto tiver um preço na tabela de preços, sobrepõe. Senão, vai 0.
     const produtosFormatados = produtos.map(p => {
       let precoFinal = 0;
@@ -35,7 +46,8 @@ export async function listarProdutos(req, res) {
         ...resto,
         preco_normal: precoFinal,
         preco_cartao: precoCartaoFinal,
-        custo: custoFinal
+        custo: custoFinal,
+        msestoque: [{ quantidade: estoqueMap[p.codproduto] || 0 }]
       };
     });
 
@@ -81,6 +93,7 @@ export async function criarProdutos(req, res) {
         estoque_minimo: req.body.estoque_minimo ? Number(req.body.estoque_minimo) : 0,
         codfornecedor: req.body.codfornecedor ? Number(req.body.codfornecedor) : null,
         ativo: req.body.ativo || "S",
+        controla_validade: req.body.controla_validade || "S",
         data_cadastro: new Date(),
         resumo: req.body.resumo || "",
         imagem_url,
@@ -178,8 +191,16 @@ export async function alterarProdutos(req, res) {
     // Limpar remover_imagem de 'dados' para não dar erro no Prisma
     delete dados.remover_imagem;
     
+    // Se o produto estava em revisão ('R'), ao salvar ele passa a ser ativo ('S')
+    if (produtoAtual.ativo === 'R') {
+      dados.ativo = 'S';
+    }
+    
     dados.imagem_url = imagem_url;
     dados.imagem_public_id = imagem_public_id;
+    if (dados.controla_validade) {
+      dados.controla_validade = dados.controla_validade === "S" ? "S" : "N";
+    }
 
     const produtoAtualizado = await prisma.msproduto.update({
       where: { codproduto: Number(codproduto) },

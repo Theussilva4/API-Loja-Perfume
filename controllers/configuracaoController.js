@@ -46,6 +46,7 @@ export const updateConfiguracoes = async (req, res) => {
           venda_qualquer_fornecedor: data.venda_qualquer_fornecedor,
           venda_sem_preco: data.venda_sem_preco,
           atualizacao_custo_compra: data.atualizacao_custo_compra,
+          modo_cobranca_cartao: data.modo_cobranca_cartao,
           margem_alvo: data.margem_alvo ?? config.margem_alvo,
           margem_minima: data.margem_minima ?? config.margem_minima,
         }

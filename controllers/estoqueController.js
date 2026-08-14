@@ -1,4 +1,26 @@
 import prisma from "../prismaClient.js"
+
+export async function listarLotes(req, res) {
+  try {
+    const { codproduto } = req.params;
+    const { codfilial } = req.query;
+
+    const where = { codproduto: Number(codproduto), quantidade: { gt: 0 } };
+    if (codfilial) {
+      where.codfilial = Number(codfilial);
+    }
+
+    const lotes = await prisma.msestoque_lote.findMany({
+      where,
+      orderBy: { validade: 'asc' }
+    });
+
+    res.json(lotes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao buscar lotes" });
+  }
+}
 import { logAuditoria } from "../services/auditService.js"
 import { randomUUID } from "crypto"
 
@@ -122,11 +144,68 @@ export async function registrarEntradaManual(req, res) {
             codproduto: item.codproduto,
             codfilial: filialDestino,
             tipo: "ENTRADA",
-            origem: origem || "AJUSTE",
+            origem: origem || "COMPRA",
             quantidade: item.quantidade,
             uuid: ajusteUuid
           }
         });
+
+        // Registrar Lote/Validade para o FEFO
+        if (item.validade) {
+          const loteNome = item.lote || "SEM_LOTE";
+          
+          const loteExistente = await tx.msestoque_lote.findFirst({
+            where: {
+              codproduto: item.codproduto,
+              codfilial: filialDestino,
+              lote: loteNome,
+              validade: new Date(item.validade)
+            }
+          });
+
+          if (loteExistente) {
+            await tx.msestoque_lote.update({
+              where: { id: loteExistente.id },
+              data: { quantidade: loteExistente.quantidade + item.quantidade }
+            });
+          } else {
+            await tx.msestoque_lote.create({
+              data: {
+                codproduto: item.codproduto,
+                codfilial: filialDestino,
+                lote: loteNome,
+                validade: new Date(item.validade),
+                quantidade: item.quantidade
+              }
+            });
+          }
+        } else {
+          // Se não enviou validade, cria/atualiza lote genérico SEM_LOTE e sem validade
+          const loteExistente = await tx.msestoque_lote.findFirst({
+            where: {
+              codproduto: item.codproduto,
+              codfilial: filialDestino,
+              lote: "SEM_LOTE",
+              validade: null
+            }
+          });
+
+          if (loteExistente) {
+            await tx.msestoque_lote.update({
+              where: { id: loteExistente.id },
+              data: { quantidade: loteExistente.quantidade + item.quantidade }
+            });
+          } else {
+            await tx.msestoque_lote.create({
+              data: {
+                codproduto: item.codproduto,
+                codfilial: filialDestino,
+                lote: "SEM_LOTE",
+                quantidade: item.quantidade
+              }
+            });
+          }
+        }
       }
     });
 
@@ -413,5 +492,338 @@ export async function extratoProduto(req, res) {
   } catch (error) {
     console.error("Erro ao gerar extrato:", error);
     res.status(500).json({ erro: "Erro ao gerar extrato de estoque" });
+  }
+}
+
+export async function transferirEstoque(req, res) {
+  try {
+    const { codproduto, filialOrigem, filialDestino, quantidade, observacao } = req.body;
+
+    if (!codproduto || !filialOrigem || !filialDestino || !quantidade || quantidade <= 0) {
+      return res.status(400).json({ erro: "Dados inválidos para transferência" });
+    }
+
+    if (filialOrigem === filialDestino) {
+      return res.status(400).json({ erro: "Filial de origem e destino devem ser diferentes" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Verificar saldo da origem
+      const estoqueOrigem = await tx.msestoque.findUnique({
+        where: { codproduto_codfilial: { codproduto: Number(codproduto), codfilial: Number(filialOrigem) } }
+      });
+
+      if (!estoqueOrigem || estoqueOrigem.quantidade < quantidade) {
+        throw new Error("Estoque insuficiente na filial de origem");
+      }
+
+      // 2. Abater FIFO/FEFO dos lotes
+      let qtdRestante = Number(quantidade);
+      const lotesComValidade = await tx.msestoque_lote.findMany({
+        where: { codproduto: Number(codproduto), codfilial: Number(filialOrigem), quantidade: { gt: 0 }, validade: { not: null } },
+        orderBy: { validade: 'asc' }
+      });
+      const lotesSemValidade = await tx.msestoque_lote.findMany({
+        where: { codproduto: Number(codproduto), codfilial: Number(filialOrigem), quantidade: { gt: 0 }, validade: null }
+      });
+      const lotesDisponiveis = [...lotesComValidade, ...lotesSemValidade];
+
+      for (const lote of lotesDisponiveis) {
+        if (qtdRestante <= 0) break;
+        const qtdAbater = Math.min(lote.quantidade, qtdRestante);
+        
+        // Retira da origem
+        await tx.msestoque_lote.update({
+          where: { id: lote.id },
+          data: { quantidade: { decrement: qtdAbater } }
+        });
+
+        await tx.mssaida_lote.create({
+          data: {
+            codproduto: Number(codproduto),
+            codfilial: Number(filialOrigem),
+            lote: lote.lote,
+            quantidade: qtdAbater,
+            tipo_saida: "TRANSFERENCIA"
+          }
+        });
+
+        // Adiciona no destino
+        const loteExistenteDestino = await tx.msestoque_lote.findFirst({
+          where: { codproduto: Number(codproduto), codfilial: Number(filialDestino), lote: lote.lote }
+        });
+        
+        if (loteExistenteDestino) {
+           await tx.msestoque_lote.update({
+             where: { id: loteExistenteDestino.id },
+             data: { quantidade: { increment: qtdAbater } }
+           });
+        } else {
+           await tx.msestoque_lote.create({
+             data: {
+               codproduto: Number(codproduto),
+               codfilial: Number(filialDestino),
+               lote: lote.lote,
+               validade: lote.validade,
+               quantidade: qtdAbater
+             }
+           });
+        }
+
+        qtdRestante -= qtdAbater;
+      }
+
+      if (qtdRestante > 0) {
+        await tx.mssaida_lote.create({
+          data: {
+            codproduto: Number(codproduto),
+            codfilial: Number(filialOrigem),
+            lote: "SEM_LOTE",
+            quantidade: qtdRestante,
+            tipo_saida: "TRANSFERENCIA"
+          }
+        });
+        const loteExistenteDestino = await tx.msestoque_lote.findFirst({
+          where: { codproduto: Number(codproduto), codfilial: Number(filialDestino), lote: "SEM_LOTE" }
+        });
+        if (loteExistenteDestino) {
+           await tx.msestoque_lote.update({
+             where: { id: loteExistenteDestino.id },
+             data: { quantidade: { increment: qtdRestante } }
+           });
+        } else {
+           await tx.msestoque_lote.create({
+             data: { codproduto: Number(codproduto), codfilial: Number(filialDestino), lote: "SEM_LOTE", quantidade: qtdRestante }
+           });
+        }
+      }
+
+      // 3. Registrar Movimentos (msmov_estoque)
+      await tx.msmov_estoque.create({
+        data: {
+          codproduto: Number(codproduto),
+          codfilial: Number(filialOrigem),
+          tipo: "SAIDA",
+          origem: "TRANSFERENCIA",
+          quantidade: Number(quantidade),
+          origem_id: null
+        }
+      });
+
+      await tx.msmov_estoque.create({
+        data: {
+          codproduto: Number(codproduto),
+          codfilial: Number(filialDestino),
+          tipo: "ENTRADA",
+          origem: "TRANSFERENCIA",
+          quantidade: Number(quantidade),
+          origem_id: null
+        }
+      });
+
+      // 4. Atualizar saldos globais (msestoque)
+      await tx.msestoque.update({
+        where: { codproduto_codfilial: { codproduto: Number(codproduto), codfilial: Number(filialOrigem) } },
+        data: { quantidade: { decrement: Number(quantidade) }, atualizado_em: new Date() }
+      });
+
+      await tx.msestoque.upsert({
+        where: { codproduto_codfilial: { codproduto: Number(codproduto), codfilial: Number(filialDestino) } },
+        update: { quantidade: { increment: Number(quantidade) }, atualizado_em: new Date() },
+        create: { codproduto: Number(codproduto), codfilial: Number(filialDestino), quantidade: Number(quantidade) }
+      });
+
+      return true;
+    });
+
+    res.json({ mensagem: "Transferência concluída com sucesso" });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ erro: error.message || "Erro ao realizar transferência" });
+  }
+}
+
+export async function listarTodasValidades(req, res) {
+  try {
+    const { codfilial } = req.query;
+    const where = { quantidade: { gt: 0 }, lote: { not: 'PADRAO' } };
+    if (codfilial && codfilial !== "undefined" && !isNaN(Number(codfilial))) {
+      where.codfilial = Number(codfilial);
+    }
+
+    const lotes = await prisma.msestoque_lote.findMany({
+      where,
+      include: {
+        msproduto: { select: { descricao: true, codproduto: true, controla_validade: true, codigo_barras: true } }
+      },
+      orderBy: { validade: 'asc' }
+    });
+    res.json(lotes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: 'Erro ao buscar lotes.' });
+  }
+}
+
+export async function listarPendenciasRastreabilidade(req, res) {
+  try {
+    const { codfilial } = req.query;
+    if (!codfilial || codfilial === "undefined" || isNaN(Number(codfilial))) {
+      return res.status(400).json({ erro: 'A filial é obrigatória para rastreabilidade.' });
+    }
+
+    const produtosComValidade = await prisma.msproduto.findMany({
+      where: { controla_validade: 'S' },
+      select: { codproduto: true, descricao: true, codigo_barras: true }
+    });
+    
+    const codigosProdutos = produtosComValidade.map(p => p.codproduto);
+
+    const estoquesRaw = await prisma.msestoque.findMany({
+      where: {
+        codfilial: Number(codfilial),
+        quantidade: { gt: 0 },
+        codproduto: { in: codigosProdutos }
+      }
+    });
+
+    const produtosMap = produtosComValidade.reduce((acc, p) => {
+      acc[p.codproduto] = p;
+      return acc;
+    }, {});
+
+    const estoques = estoquesRaw.map(e => ({
+      ...e,
+      msproduto: produtosMap[e.codproduto]
+    }));
+
+    const lotes = await prisma.msestoque_lote.groupBy({
+      by: ['codproduto'],
+      where: { codfilial: Number(codfilial), lote: { not: 'PADRAO' } },
+      _sum: { quantidade: true }
+    });
+
+    const lotesMap = lotes.reduce((acc, l) => {
+      acc[l.codproduto] = l._sum.quantidade || 0;
+      return acc;
+    }, {});
+
+    const pendencias = estoques.filter(e => {
+      const qtdLotes = lotesMap[e.codproduto] || 0;
+      return e.quantidade > qtdLotes;
+    }).map(e => ({
+      ...e,
+      qtd_rastreada: lotesMap[e.codproduto] || 0,
+      qtd_pendente: e.quantidade - (lotesMap[e.codproduto] || 0)
+    }));
+
+    res.json(pendencias);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: 'Erro ao buscar pendências.' });
+  }
+}
+
+export async function atribuirValidadeManual(req, res) {
+  try {
+    const { codproduto, codfilial, lote, validade, quantidade } = req.body;
+    if (!codproduto || !codfilial || !quantidade || !validade) return res.status(400).json({ erro: 'Dados incompletos.' });
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Verificar pendência limite
+      const estoque = await tx.msestoque.findFirst({
+        where: { codproduto: Number(codproduto), codfilial: Number(codfilial) }
+      });
+      if (!estoque) throw new Error('Estoque não encontrado.');
+      
+      const agregados = await tx.msestoque_lote.aggregate({
+        where: { codproduto: Number(codproduto), codfilial: Number(codfilial) },
+        _sum: { quantidade: true }
+      });
+      const pendente = estoque.quantidade - (agregados._sum.quantidade || 0);
+      if (Number(quantidade) > pendente) throw new Error(`Quantidade máxima permitida para atribuição é ${pendente}.`);
+
+      // 2. Criar ou incrementar o lote
+      const validadeDate = new Date(validade);
+      const loteExistente = await tx.msestoque_lote.findFirst({
+        where: { codproduto: Number(codproduto), codfilial: Number(codfilial), lote: lote || 'MANUAL', validade: validadeDate }
+      });
+
+      if (loteExistente) {
+        await tx.msestoque_lote.update({
+          where: { id: loteExistente.id },
+          data: { quantidade: { increment: Number(quantidade) } }
+        });
+      } else {
+        await tx.msestoque_lote.create({
+          data: {
+            codproduto: Number(codproduto),
+            codfilial: Number(codfilial),
+            lote: lote || 'MANUAL',
+            validade: validadeDate,
+            quantidade: Number(quantidade)
+          }
+        });
+      }
+
+      // 3. Registrar auditoria (msmov_estoque)
+      await tx.msmov_estoque.create({
+        data: {
+          codproduto: Number(codproduto),
+          codfilial: Number(codfilial),
+          tipo: 'AJUSTE',
+          origem: 'ATRIBUICAO_LOTE',
+          quantidade: Number(quantidade),
+          created_by: req.user?.id || null
+        }
+      });
+    });
+
+    res.json({ mensagem: 'Validade atribuída com sucesso.' });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ erro: error.message || 'Erro ao atribuir validade.' });
+  }
+}
+
+export async function descartarLote(req, res) {
+  try {
+    const { id_lote, quantidade, motivo, observacao } = req.body;
+    if (!id_lote || !quantidade || !motivo) return res.status(400).json({ erro: 'Dados incompletos.' });
+
+    await prisma.$transaction(async (tx) => {
+      const lote = await tx.msestoque_lote.findUnique({ where: { id: Number(id_lote) } });
+      if (!lote) throw new Error('Lote não encontrado.');
+      if (lote.quantidade < Number(quantidade)) throw new Error('Quantidade insuficiente no lote.');
+
+      // 1. Reduzir do lote
+      await tx.msestoque_lote.update({
+        where: { id: lote.id },
+        data: { quantidade: { decrement: Number(quantidade) } }
+      });
+
+      // 2. Reduzir do msestoque global
+      await tx.msestoque.update({
+        where: { codproduto_codfilial: { codproduto: lote.codproduto, codfilial: lote.codfilial } },
+        data: { quantidade: { decrement: Number(quantidade) }, atualizado_em: new Date() }
+      });
+
+      // 3. Registrar msmov_estoque como DESCARTE
+      await tx.msmov_estoque.create({
+        data: {
+          codproduto: lote.codproduto,
+          codfilial: lote.codfilial,
+          tipo: 'SAIDA',
+          origem: 'DESCARTE',
+          quantidade: Number(quantidade),
+          created_by: req.user?.id || null
+        }
+      });
+    });
+
+    res.json({ mensagem: 'Lote descartado com sucesso.' });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ erro: error.message || 'Erro ao descartar lote.' });
   }
 }
