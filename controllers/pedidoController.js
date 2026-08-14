@@ -343,9 +343,15 @@ export async function criarPedido(req, res) {
         }
 
         // 7. Salvar pagamentos e movimento de caixa
+        const todosPlanos = await tx.mSPLANOPAGAMENTO.findMany();
+        const planosMap = {};
+        for(const p of todosPlanos) planosMap[p.CODPLPAG] = p.tipo_pagamento;
+
         if (pagamentos && pagamentos.length > 0) {
           for (const pag of pagamentos) {
             const valorPag = parseFloat(pag.valor);
+            const isCrediario = planosMap[Number(pag.codplano_pagamento)] === 'CREDIARIO';
+            
             await tx.mspedido_pagamento.create({
               data: {
                 numpedido: pedido.numpedido,
@@ -359,21 +365,38 @@ export async function criarPedido(req, res) {
                 modo_cobranca: pag.modo_cobranca || null
               }
             });
-            await tx.mscaixa_movimento.create({
-              data: {
-                codsessao: sessaoCaixa.codsessao,
-                codusur: codusur_criou ? Number(codusur_criou) : sessaoCaixa.codusur_abertura,
-                tipo: 'ENTRADA',
-                categoria: 'VENDA',
-                valor: valorPag,
-                codplano_pagamento: Number(pag.codplano_pagamento),
-                numpedido: pedido.numpedido,
-                observacao: `Venda ${codigo_venda}`
-              }
-            });
+
+            if (isCrediario) {
+              await tx.mscontas_receber.create({
+                data: {
+                  codcliente: Number(codcliente),
+                  codfilial: filial,
+                  numpedido: pedido.numpedido,
+                  valor_total: valorPag,
+                  data_emissao: new Date(),
+                  status: "PENDENTE",
+                  observacoes: `Venda ${codigo_venda} (Múltiplos)`
+                }
+              });
+            } else {
+              await tx.mscaixa_movimento.create({
+                data: {
+                  codsessao: sessaoCaixa.codsessao,
+                  codusur: codusur_criou ? Number(codusur_criou) : sessaoCaixa.codusur_abertura,
+                  tipo: 'ENTRADA',
+                  categoria: 'VENDA',
+                  valor: valorPag,
+                  codplano_pagamento: Number(pag.codplano_pagamento),
+                  numpedido: pedido.numpedido,
+                  observacao: `Venda ${codigo_venda}`
+                }
+              });
+            }
           }
         } else if (formaPagamento) {
           // Fallback para legado
+          const isCrediario = planosMap[Number(formaPagamento)] === 'CREDIARIO';
+          
           await tx.mspedido_pagamento.create({
             data: {
               numpedido: pedido.numpedido,
@@ -381,18 +404,33 @@ export async function criarPedido(req, res) {
               valor: valor_total_venda
             }
           });
-          await tx.mscaixa_movimento.create({
-            data: {
-              codsessao: sessaoCaixa.codsessao,
-              codusur: codusur_criou ? Number(codusur_criou) : sessaoCaixa.codusur_abertura,
-              tipo: 'ENTRADA',
-              categoria: 'VENDA',
-              valor: valor_total_venda,
-              codplano_pagamento: Number(formaPagamento),
-              numpedido: pedido.numpedido,
-              observacao: `Venda ${codigo_venda}`
-            }
-          });
+          
+          if (isCrediario) {
+            await tx.mscontas_receber.create({
+              data: {
+                codcliente: Number(codcliente),
+                codfilial: filial,
+                numpedido: pedido.numpedido,
+                valor_total: valor_total_venda,
+                data_emissao: new Date(),
+                status: "PENDENTE",
+                observacoes: `Venda ${codigo_venda}`
+              }
+            });
+          } else {
+            await tx.mscaixa_movimento.create({
+              data: {
+                codsessao: sessaoCaixa.codsessao,
+                codusur: codusur_criou ? Number(codusur_criou) : sessaoCaixa.codusur_abertura,
+                tipo: 'ENTRADA',
+                categoria: 'VENDA',
+                valor: valor_total_venda,
+                codplano_pagamento: Number(formaPagamento),
+                numpedido: pedido.numpedido,
+                observacao: `Venda ${codigo_venda}`
+              }
+            });
+          }
         }
       }
 

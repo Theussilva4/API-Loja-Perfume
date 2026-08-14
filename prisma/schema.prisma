@@ -28,6 +28,7 @@ model mscliente {
   created_at      DateTime?  @default(now()) @db.DateTime(0)
   updated_at      DateTime?  @updatedAt @db.DateTime(0)
   mspedido        mspedido[]
+  mscontas_receber mscontas_receber[]
 }
 
 model msforma_pagamento {
@@ -103,6 +104,7 @@ model msusuario {
   sessoes_abertas                               mscaixa_sessao[]    @relation("sessao_abertura")
   sessoes_fechadas                              mscaixa_sessao[]    @relation("sessao_fechamento")
   movimentos_caixa                              mscaixa_movimento[]
+  recebimentos_contas                           mscontas_receber_pagamento[]
 }
 
 model msentrada_estoque {
@@ -247,6 +249,7 @@ model mspedido {
   mspedido_kit                                   mspedido_kit[]
   pagamentos_multiplos                           mspedido_pagamento[]
   movimentos_caixa                               mscaixa_movimento[]
+  mscontas_receber                               mscontas_receber[]
 
   @@index([codcliente], map: "codcliente")
   @@index([codusur_criou], map: "codusur_criou")
@@ -306,8 +309,8 @@ model MSPLANOPAGAMENTO {
   regras_parcelamento  String?              @db.Text
   created_at           DateTime?            @default(now()) @db.DateTime(0)
   updated_at           DateTime?            @updatedAt @db.DateTime(0)
-  mscaixaMovimentos    mscaixa_movimento[]
-  mspedidoPagamentos   mspedido_pagamento[]
+  mscaixa_movimento            mscaixa_movimento[]
+  mspedido_pagamento           mspedido_pagamento[]
 }
 
 model msfornecedor {
@@ -578,4 +581,42 @@ model mspedido_pagamento {
 
   pedido          mspedido         @relation(fields: [numpedido], references: [numpedido])
   plano_pagamento MSPLANOPAGAMENTO @relation(fields: [codplano_pagamento], references: [CODPLPAG])
+}
+
+model mscontas_receber {
+  id              Int       @id @default(autoincrement())
+  uuid            String?   @default(uuid()) @db.VarChar(36)
+  codcliente      Int
+  codfilial       Int
+  numpedido       Int?
+  valor_total     Decimal   @db.Decimal(12, 2)
+  valor_pago      Decimal   @default(0) @db.Decimal(12, 2)
+  data_emissao    DateTime  @default(now()) @db.DateTime(0)
+  data_vencimento DateTime? @db.Date
+  status          String    @default("PENDENTE") @db.VarChar(20) // PENDENTE, PARCIAL, PAGO, CANCELADO
+  observacoes     String?   @db.Text
+  created_at      DateTime? @default(now()) @db.DateTime(0)
+  updated_at      DateTime? @updatedAt @db.DateTime(0)
+
+  mscliente       mscliente @relation(fields: [codcliente], references: [codcliente], onDelete: NoAction, onUpdate: NoAction)
+  mspedido        mspedido? @relation(fields: [numpedido], references: [numpedido], onDelete: NoAction, onUpdate: NoAction)
+  pagamentos      mscontas_receber_pagamento[]
+
+  @@index([codcliente])
+  @@index([codfilial])
+  @@index([status])
+}
+
+model mscontas_receber_pagamento {
+  id              Int       @id @default(autoincrement())
+  uuid            String?   @default(uuid()) @db.VarChar(36)
+  codconta        Int
+  valor_pago      Decimal   @db.Decimal(12, 2)
+  data_pagamento  DateTime  @default(now()) @db.DateTime(0)
+  codusur         Int?      // Caixa que recebeu
+
+  conta           mscontas_receber @relation(fields: [codconta], references: [id], onDelete: Cascade)
+  msusuario       msusuario?       @relation(fields: [codusur], references: [codusur], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([codconta])
 }
