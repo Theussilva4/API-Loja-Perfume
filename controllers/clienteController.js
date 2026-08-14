@@ -47,17 +47,25 @@ export async function alterarclientes(req, res) {
     return res.status(400).json({ erro: "O código do cliente é obrigatório" });
   }
   // Remover campos que não devem ser atualizados
-  const camposProibidos = ["data_cadastro", "ativo"];
+  const camposProibidos = ["data_cadastro", "ativo", "codcliente", "uuid", "created_at", "updated_at"];
   camposProibidos.forEach(campo => delete dados[campo]);
+
+  // Formatar data_nascimento
+  if (dados.data_nascimento === "") {
+    dados.data_nascimento = null;
+  } else if (dados.data_nascimento) {
+    dados.data_nascimento = new Date(dados.data_nascimento);
+  }
+
   try {
     const clienteAtualizado = await prisma.mscliente.update({
       where: { codcliente: Number(codcliente) },
       data: dados,
-
-    })
-    res.json(clienteAtualizado)
+    });
+    res.json(clienteAtualizado);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao alterar cliente" })
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao alterar cliente" });
   }
 }
 export async function alterarStatusCliente(req, res) {

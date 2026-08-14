@@ -480,7 +480,7 @@ export async function alterarStatus(req, res) {
       await prisma.$transaction(async (tx) => {
         // Verifica caixa aberto
         // Precisamos do codusur_criou. Se não vier no body, usamos do pedidoAnterior.
-        const usrId = req.body.codusur_cancelou || req.body.codusur || pedidoAnterior.codusur_criou;
+        const usrId = req.body.codusur_cancelou || req.body.codusur || req.usuario?.id || pedidoAnterior.codusur_criou || 1;
         const sessaoCaixa = await tx.mscaixa_sessao.findFirst({
           where: { status: 'ABERTO' }
         });
