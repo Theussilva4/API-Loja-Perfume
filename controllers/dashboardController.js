@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -40,7 +40,7 @@ export const getDashboardMetrics = async (req, res) => {
     fimHoje.setDate(fimHoje.getDate() + 1);
 
     // ==========================================
-    // 1. FATURAMENTO (HOJE, MÊS, ANO) e PEDIDOS
+    // 1. FATURAMENTO (HOJE, MÃS, ANO) e PEDIDOS
     // ==========================================
 
     const pedidosHoje = await prisma.mspedido.findMany({
@@ -100,7 +100,7 @@ export const getDashboardMetrics = async (req, res) => {
       where: { ativo: "S", data_cadastro: { gte: inicioMes } }
     });
 
-    // 2. TOP CLIENTES (Período)
+    // 2. TOP CLIENTES (PerÃ­odo)
     // ==========================================
     const topClientes = await prisma.mspedido.groupBy({
       by: ['codcliente'],
@@ -122,13 +122,13 @@ export const getDashboardMetrics = async (req, res) => {
     const topClientesFormatado = topClientes.map(t => {
       const cli = clientesNomes.find(c => c.codcliente === t.codcliente);
       return {
-        nome: cli ? cli.nome : "Cliente não identificado",
+        nome: cli ? cli.nome : "Cliente nÃ£o identificado",
         total: Number(t._sum.valor_total || 0)
       };
     });
 
     // ==========================================
-    // 3. PRODUTOS MAIS VENDIDOS (Período)
+    // 3. PRODUTOS MAIS VENDIDOS (PerÃ­odo)
     // ==========================================
     const maisVendidos = await prisma.mspedido_item.groupBy({
       by: ['codproduto'],
@@ -152,7 +152,7 @@ export const getDashboardMetrics = async (req, res) => {
     });
 
     // ==========================================
-    // 4. GRÁFICO DE VENDAS (Últimos 15 dias)
+    // 4. GRÃFICO DE VENDAS (Ãltimos 15 dias)
     // ==========================================
     const quinzeDiasAtras = new Date(hoje);
     quinzeDiasAtras.setDate(quinzeDiasAtras.getDate() - 14);
@@ -205,7 +205,7 @@ export const getDashboardMetrics = async (req, res) => {
     // Busca a ultima venda de produtos com estoque
     const ultimasVendasProd = await prisma.mspedido_item.groupBy({
       by: ['codproduto'],
-      _max: { 'mspedido': { data_pedido: true } } // Isso não funciona direto no prisma groupBy se nao for aggregate.
+      _max: { 'mspedido': { data_pedido: true } } // Isso nÃ£o funciona direto no prisma groupBy se nao for aggregate.
     }).catch(() => []); 
     
     // Vamos usar queryRawUnsafe para facilitar o Sem Giro
@@ -231,7 +231,7 @@ export const getDashboardMetrics = async (req, res) => {
     const noventaDiasAtras = new Date(hoje); noventaDiasAtras.setDate(noventaDiasAtras.getDate() - 90);
 
     for (const p of semGiroList) {
-      // Se nunca vendeu, consideramos a data mais antiga possível
+      // Se nunca vendeu, consideramos a data mais antiga possÃ­vel
       const ultimaVenda = p.ultima_venda ? new Date(p.ultima_venda) : new Date(0);
       
       const item = { descricao: p.descricao, saldo: Number(p.saldo), ultima_venda: p.ultima_venda };
@@ -258,7 +258,7 @@ export const getDashboardMetrics = async (req, res) => {
     `);
 
     // ==========================================
-    // 7. ÚLTIMOS PEDIDOS
+    // 7. ÃLTIMOS PEDIDOS
     // ==========================================
     const ultimosPedidos = await prisma.mspedido.findMany({
       take: 5,
@@ -268,7 +268,7 @@ export const getDashboardMetrics = async (req, res) => {
     });
 
     // ==========================================
-    // 8. VALIDADES (FEFO) E PENDÊNCIAS
+    // 8. VALIDADES (FEFO) E PENDÃNCIAS
     // ==========================================
     const filialCondition = codfilial ? { codfilial: Number(codfilial) } : {};
     
@@ -395,7 +395,7 @@ export const getDashboardMetrics = async (req, res) => {
       maisVendidos: maisVendidosFormatado,
       ultimosPedidos: ultimosPedidos.map(u => ({
         numpedido: u.numpedido,
-        cliente: u.mscliente?.nome || "Balcão",
+        cliente: u.mscliente?.nome || "BalcÃ£o",
         valor_total: u.valor_total,
         status: u.status,
         data_pedido: u.data_pedido
@@ -415,7 +415,7 @@ export const getDashboardMetrics = async (req, res) => {
 
   } catch (error) {
     console.error("Erro no dashboard:", error);
-    res.status(500).json({ error: "Erro ao buscar métricas do dashboard." });
+    res.status(500).json({ error: "Erro ao buscar mÃ©tricas do dashboard." });
   }
 };
 

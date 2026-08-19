@@ -1,7 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+﻿import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-// 1. Listar caixas físicos/lógicos
+// 1. Listar caixas fÃ­sicos/lÃ³gicos
 export const listarCaixas = async (req, res) => {
     try {
         const { codfilial, todos } = req.query;
@@ -24,7 +24,7 @@ export const criarCaixa = async (req, res) => {
     try {
         const { nome, codfilial } = req.body;
         if (!nome || !codfilial) {
-            return res.status(400).json({ error: 'Nome e filial são obrigatórios' });
+            return res.status(400).json({ error: 'Nome e filial sÃ£o obrigatÃ³rios' });
         }
         const novoCaixa = await prisma.mscaixa.create({
             data: {
@@ -58,7 +58,7 @@ export const editarCaixa = async (req, res) => {
     }
 };
 
-// 2. Status do Caixa atual do usuário (Verifica se ele tem sessão aberta e fecha de dias anteriores)
+// 2. Status do Caixa atual do usuÃ¡rio (Verifica se ele tem sessÃ£o aberta e fecha de dias anteriores)
 export const statusCaixa = async (req, res) => {
     try {
         const codusur = req.usuario.id; // assumindo que middleware de auth insere user
@@ -76,7 +76,7 @@ export const statusCaixa = async (req, res) => {
             return res.json({ status: 'FECHADO', sessao: null });
         }
 
-        // Verifica se a sessão é de um dia anterior e força o fechamento
+        // Verifica se a sessÃ£o Ã© de um dia anterior e forÃ§a o fechamento
         const dataAbertura = new Date(sessao.data_abertura);
         const agora = new Date();
         // Ajusta para o timezone do Brasil para comparar as datas corretamente (GMT-3)
@@ -89,8 +89,8 @@ export const statusCaixa = async (req, res) => {
             dataAberturaBr.getMonth() !== hojeBr.getMonth() ||
             dataAberturaBr.getDate() !== hojeBr.getDate()
         ) {
-            // A sessão é de outro dia. Vamos forçar o fechamento.
-            // Para saldo_esperado, precisaremos somar os movimentos da sessão (Dinheiro).
+            // A sessÃ£o Ã© de outro dia. Vamos forÃ§ar o fechamento.
+            // Para saldo_esperado, precisaremos somar os movimentos da sessÃ£o (Dinheiro).
             const planosDinheiro = await prisma.mSPLANOPAGAMENTO.findMany({
                 where: { tipo_pagamento: 'A_VISTA', DESCRICAO: { contains: 'DINHEIRO' } }
             });
@@ -108,8 +108,8 @@ export const statusCaixa = async (req, res) => {
                 }
             }
 
-            // Atualiza a sessão para fechada, sem valor informado pelo usuário (diferença será zero para não gerar pendência falsa, ou podemos gerar uma diferença)
-            // Aqui assumimos que o valor do fechamento é igual ao saldo esperado, pois não houve contagem física.
+            // Atualiza a sessÃ£o para fechada, sem valor informado pelo usuÃ¡rio (diferenÃ§a serÃ¡ zero para nÃ£o gerar pendÃªncia falsa, ou podemos gerar uma diferenÃ§a)
+            // Aqui assumimos que o valor do fechamento Ã© igual ao saldo esperado, pois nÃ£o houve contagem fÃ­sica.
             await prisma.mscaixa_sessao.update({
                 where: { codsessao: sessao.codsessao },
                 data: {
@@ -118,7 +118,7 @@ export const statusCaixa = async (req, res) => {
                     data_fechamento: agora,
                     valor_fechamento: saldoEsperadoDinheiro,
                     diferenca: 0,
-                    motivo_diferenca: 'Fechamento automático por virada de dia (esquecido aberto)'
+                    motivo_diferenca: 'Fechamento automÃ¡tico por virada de dia (esquecido aberto)'
                 }
             });
 
@@ -130,7 +130,7 @@ export const statusCaixa = async (req, res) => {
                     acao: 'ATUALIZAR',
                     tabela: 'mscaixa_sessao',
                     registro_id: String(sessao.codsessao),
-                    motivo: `Caixa fechado automaticamente (virada de dia). Sessão ${sessao.codsessao}. Saldo: ${saldoEsperadoDinheiro}`
+                    motivo: `Caixa fechado automaticamente (virada de dia). SessÃ£o ${sessao.codsessao}. Saldo: ${saldoEsperadoDinheiro}`
                 }
             });
 
@@ -145,30 +145,30 @@ export const statusCaixa = async (req, res) => {
     }
 };
 
-// 3. Abrir Caixa (Sessão)
+// 3. Abrir Caixa (SessÃ£o)
 export const abrirCaixa = async (req, res) => {
     try {
         const codusur = req.usuario.id;
         const { codcaixa, valor_abertura } = req.body;
 
-        if (!codcaixa) return res.status(400).json({ message: 'Caixa é obrigatório.' });
+        if (!codcaixa) return res.status(400).json({ message: 'Caixa Ã© obrigatÃ³rio.' });
 
-        // Verifica se já existe algum caixa aberto na loja
+        // Verifica se jÃ¡ existe algum caixa aberto na loja
         const sessaoAtiva = await prisma.mscaixa_sessao.findFirst({
             where: { status: 'ABERTO' }
         });
 
         if (sessaoAtiva) {
-            return res.status(400).json({ message: 'Já existe um caixa aberto na loja.' });
+            return res.status(400).json({ message: 'JÃ¡ existe um caixa aberto na loja.' });
         }
 
-        // Verifica se o caixa escolhido já está aberto por outra pessoa
+        // Verifica se o caixa escolhido jÃ¡ estÃ¡ aberto por outra pessoa
         const caixaOcupado = await prisma.mscaixa_sessao.findFirst({
             where: { codcaixa: parseInt(codcaixa), status: 'ABERTO' }
         });
 
         if (caixaOcupado) {
-            return res.status(400).json({ message: 'Este caixa já está aberto por outro operador.' });
+            return res.status(400).json({ message: 'Este caixa jÃ¡ estÃ¡ aberto por outro operador.' });
         }
 
         // Abre o caixa usando transaction para inserir o primeiro movimento de ABERTURA (Fundo de Troco)
@@ -190,7 +190,7 @@ export const abrirCaixa = async (req, res) => {
                 }
             });
 
-            // Lança o suprimento inicial
+            // LanÃ§a o suprimento inicial
             if (valor_abertura && parseFloat(valor_abertura) > 0) {
                 await tx.mscaixa_movimento.create({
                     data: {
@@ -227,11 +227,11 @@ export const fecharCaixa = async (req, res) => {
         });
 
         if (!sessao || sessao.status === 'FECHADO') {
-            return res.status(400).json({ message: 'Sessão inválida ou já fechada.' });
+            return res.status(400).json({ message: 'SessÃ£o invÃ¡lida ou jÃ¡ fechada.' });
         }
 
         // Calcula saldo esperado em DINHEIRO
-        // Vamos considerar que movimentos físicos (dinheiro) são os que vamos aferir no fechamento cego
+        // Vamos considerar que movimentos fÃ­sicos (dinheiro) sÃ£o os que vamos aferir no fechamento cego
         // Precisa achar os planos de dinheiro
         const planosDinheiro = await prisma.mSPLANOPAGAMENTO.findMany({
             where: { tipo_pagamento: 'A_VISTA', DESCRICAO: { contains: 'DINHEIRO' } }
@@ -241,7 +241,7 @@ export const fecharCaixa = async (req, res) => {
         let saldoEsperadoDinheiro = 0;
 
         for (const mov of sessao.movimentos) {
-            // Conta apenas o que é dinheiro físico
+            // Conta apenas o que Ã© dinheiro fÃ­sico
             if (codsDinheiro.includes(mov.codplano_pagamento)) {
                 if (mov.tipo === 'ENTRADA') saldoEsperadoDinheiro += parseFloat(mov.valor);
                 if (mov.tipo === 'SAIDA') saldoEsperadoDinheiro -= parseFloat(mov.valor);
@@ -250,10 +250,10 @@ export const fecharCaixa = async (req, res) => {
 
         const diferenca = parseFloat(valor_informado) - saldoEsperadoDinheiro;
 
-        // Se houver diferença e não tem motivo, bloqueia
+        // Se houver diferenÃ§a e nÃ£o tem motivo, bloqueia
         if (diferenca !== 0 && !motivo_diferenca) {
             return res.status(400).json({ 
-                message: 'Existe uma diferença de caixa. O motivo é obrigatório.',
+                message: 'Existe uma diferenÃ§a de caixa. O motivo Ã© obrigatÃ³rio.',
                 diferenca: diferenca 
             });
         }
@@ -282,14 +282,14 @@ export const fecharCaixa = async (req, res) => {
     }
 };
 
-// 5. Movimentação Manual (Sangria / Suprimento)
+// 5. MovimentaÃ§Ã£o Manual (Sangria / Suprimento)
 export const movimentoManual = async (req, res) => {
     try {
         const codusur = req.usuario.id;
         const { codsessao, tipo, categoria, valor, observacao, codplano_pagamento } = req.body;
 
-        if (!valor || valor <= 0) return res.status(400).json({ message: 'Valor inválido.' });
-        if (!observacao) return res.status(400).json({ message: 'Observação é obrigatória para operações manuais.' });
+        if (!valor || valor <= 0) return res.status(400).json({ message: 'Valor invÃ¡lido.' });
+        if (!observacao) return res.status(400).json({ message: 'ObservaÃ§Ã£o Ã© obrigatÃ³ria para operaÃ§Ãµes manuais.' });
 
         const movimento = await prisma.mscaixa_movimento.create({
             data: {
@@ -298,7 +298,7 @@ export const movimentoManual = async (req, res) => {
                 tipo: tipo, // ENTRADA ou SAIDA
                 categoria: categoria, // SANGRIA, SUPRIMENTO, DESPESA
                 valor: parseFloat(valor),
-                codplano_pagamento: parseInt(codplano_pagamento), // Geralmente Dinheiro (Sangria física)
+                codplano_pagamento: parseInt(codplano_pagamento), // Geralmente Dinheiro (Sangria fÃ­sica)
                 observacao: observacao
             }
         });
@@ -324,7 +324,7 @@ export const movimentoManual = async (req, res) => {
     }
 };
 
-// 6. Extrato detalhado da sessão
+// 6. Extrato detalhado da sessÃ£o
 export const extratoSessao = async (req, res) => {
     try {
         const { codsessao } = req.params;
@@ -376,7 +376,7 @@ export const relatorioFechamento = async (req, res) => {
             }
         });
 
-        if (!sessao) return res.status(404).json({ message: 'Sessão não encontrada' });
+        if (!sessao) return res.status(404).json({ message: 'SessÃ£o nÃ£o encontrada' });
 
         const movimentos = await prisma.mscaixa_movimento.findMany({
             where: { codsessao: parseInt(codsessao) },

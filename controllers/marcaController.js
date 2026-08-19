@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js"
+﻿import prisma from "../prismaClient.js"
 
 
 
@@ -15,7 +15,7 @@ export async function listarMarca(req, res) {
 export async function criarMarca(req, res) {
   const { marca, ativo } = req.body;
   if (!marca) {
-    return res.status(400).json({ erro: "O nome da marca é obrigatório" });
+    return res.status(400).json({ erro: "O nome da marca Ã© obrigatÃ³rio" });
   }
 
   try {
@@ -37,9 +37,9 @@ export async function alterarMarca(req, res) {
   const {...dados} = req.body;
 
  if (!codmarca) {
-    return res.status(400).json({ erro: "O código do marca é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo do marca Ã© obrigatÃ³rio" });
   }
-  // Remover campos que não devem ser atualizados
+  // Remover campos que nÃ£o devem ser atualizados
   const camposProibidos = ["data_cadastro", "ativo"];
   camposProibidos.forEach(campo => delete dados[campo]);
   try {
@@ -58,7 +58,7 @@ export async function alterarStatusMarca(req, res) {
   const { ativo } = req.body; // espera { "ativo": "S" } ou { "ativo": "N" }
 
   if (!codmarca) {
-    return res.status(400).json({ erro: "O código da marca é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo da marca Ã© obrigatÃ³rio" });
   }
 
   if (ativo !== "S" && ativo !== "N") {
@@ -73,7 +73,7 @@ export async function alterarStatusMarca(req, res) {
     res.json(marcaAtualizado);
   } catch (error) {
     if (error.code === "P2025") {
-      return res.status(404).json({ erro: "marca não encontrado" });
+      return res.status(404).json({ erro: "marca nÃ£o encontrado" });
     }
     console.error(error);
     res.status(500).json({ erro: "Erro ao alterar status do marca" });

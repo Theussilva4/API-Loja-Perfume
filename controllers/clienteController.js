@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js"
+﻿import prisma from "../prismaClient.js"
 
 
 
@@ -44,9 +44,9 @@ export async function alterarclientes(req, res) {
   const { ...dados } = req.body;
 
   if (!codcliente) {
-    return res.status(400).json({ erro: "O código do cliente é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo do cliente Ã© obrigatÃ³rio" });
   }
-  // Remover campos que não devem ser atualizados
+  // Remover campos que nÃ£o devem ser atualizados
   const camposProibidos = ["data_cadastro", "ativo", "codcliente", "uuid", "created_at", "updated_at"];
   camposProibidos.forEach(campo => delete dados[campo]);
 
@@ -73,7 +73,7 @@ export async function alterarStatusCliente(req, res) {
   const { ativo } = req.body; // espera { "ativo": "S" } ou { "ativo": "N" }
 
   if (!codcliente) {
-    return res.status(400).json({ erro: "O código do cliente é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo do cliente Ã© obrigatÃ³rio" });
   }
 
   if (ativo !== "S" && ativo !== "N") {
@@ -88,7 +88,7 @@ export async function alterarStatusCliente(req, res) {
     res.json(clienteAtualizado);
   } catch (error) {
     if (error.code === "P2025") {
-      return res.status(404).json({ erro: "cliente não encontrado" });
+      return res.status(404).json({ erro: "cliente nÃ£o encontrado" });
     }
     console.error(error);
     res.status(500).json({ erro: "Erro ao alterar status do cliente" });

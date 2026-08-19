@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js";
+﻿import prisma from "../prismaClient.js";
 
 // Listar kits com seus itens
 export async function listarKits(req, res) {
@@ -30,7 +30,7 @@ export async function listarKits(req, res) {
       }
     });
 
-    // Calcular valores dinâmicos
+    // Calcular valores dinÃ¢micos
     const kitsCalculados = kits.map(kit => {
       let precoProdutos = 0;
       kit.itens.forEach(item => {
@@ -66,7 +66,7 @@ export async function criarKit(req, res) {
     const { nome, descricao, preco_kit, data_inicio, data_fim, ativo, itens, created_by } = req.body;
 
     if (!nome || !preco_kit || !itens || itens.length === 0) {
-      return res.status(400).json({ error: "Nome, preço e itens são obrigatórios." });
+      return res.status(400).json({ error: "Nome, preÃ§o e itens sÃ£o obrigatÃ³rios." });
     }
 
     const kit = await prisma.mskit.create({
@@ -114,12 +114,12 @@ export async function atualizarKit(req, res) {
     });
 
     if (!kitAtual) {
-      return res.status(404).json({ error: "Kit não encontrado." });
+      return res.status(404).json({ error: "Kit nÃ£o encontrado." });
     }
 
     const temVendas = kitAtual._count.pedidos > 0;
 
-    // Atualização usando transação
+    // AtualizaÃ§Ã£o usando transaÃ§Ã£o
     const kitAtualizado = await prisma.$transaction(async (tx) => {
       // 1. Atualizar dados cadastrais do Kit
       const updatedKit = await tx.mskit.update({
@@ -135,7 +135,7 @@ export async function atualizarKit(req, res) {
         }
       });
 
-      // 2. Se não tiver vendas, podemos alterar os itens
+      // 2. Se nÃ£o tiver vendas, podemos alterar os itens
       if (!temVendas && itens) {
         // Deletar os itens antigos
         await tx.mskit_item.deleteMany({
@@ -157,11 +157,11 @@ export async function atualizarKit(req, res) {
       return updatedKit;
     });
 
-    // Se o usuário tentou enviar itens mas o kit já tinha vendas
+    // Se o usuÃ¡rio tentou enviar itens mas o kit jÃ¡ tinha vendas
     if (temVendas && itens) {
       return res.json({
         ...kitAtualizado,
-        aviso: "Os dados do kit foram atualizados, mas os PRODUTOS não foram alterados porque este kit já possui vendas registradas. Crie um novo kit se precisar mudar a composição."
+        aviso: "Os dados do kit foram atualizados, mas os PRODUTOS nÃ£o foram alterados porque este kit jÃ¡ possui vendas registradas. Crie um novo kit se precisar mudar a composiÃ§Ã£o."
       });
     }
 
@@ -172,7 +172,7 @@ export async function atualizarKit(req, res) {
   }
 }
 
-// Inativar um Kit (Exclusão Lógica)
+// Inativar um Kit (ExclusÃ£o LÃ³gica)
 export async function excluirKit(req, res) {
   try {
     const { id } = req.params;

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // Lista contas a receber com filtros
@@ -40,7 +40,7 @@ export const listarContas = async (req, res) => {
   }
 };
 
-// Cria conta avulsa (ex: dívidas antigas, fiados)
+// Cria conta avulsa (ex: dÃ­vidas antigas, fiados)
 export const criarConta = async (req, res) => {
   try {
     const { codcliente, codfilial, valor_total, data_vencimento, observacoes } = req.body;
@@ -75,14 +75,14 @@ export const criarConta = async (req, res) => {
 export const receberConta = async (req, res) => {
   try {
     const { id } = req.params;
-    const { valor_pago, codusur, codcaixa } = req.body; // codusur é obrigatório para registrar no caixa aberto
+    const { valor_pago, codusur, codcaixa } = req.body; // codusur Ã© obrigatÃ³rio para registrar no caixa aberto
     const valor = parseFloat(valor_pago);
 
-    // Usa transação para garantir que a baixa da conta e a entrada no caixa ocorram juntas
+    // Usa transaÃ§Ã£o para garantir que a baixa da conta e a entrada no caixa ocorram juntas
     const result = await prisma.$transaction(async (tx) => {
       // 1. Busca a conta atual
       const conta = await tx.mscontas_receber.findUnique({ where: { id: parseInt(id) } });
-      if (!conta) throw new Error("Conta não encontrada");
+      if (!conta) throw new Error("Conta nÃ£o encontrada");
 
       // 2. Calcula novo valor pago e status
       const totalJaPago = parseFloat(conta.valor_pago) || 0;
@@ -104,7 +104,7 @@ export const receberConta = async (req, res) => {
         }
       });
 
-      // 4. Cria o registro de pagamento histórico
+      // 4. Cria o registro de pagamento histÃ³rico
       const pagamento = await tx.mscontas_receber_pagamento.create({
         data: {
           codconta: parseInt(id),
@@ -115,7 +115,7 @@ export const receberConta = async (req, res) => {
 
       // 5. Gera a entrada no caixa se tivermos um codusur
       if (codusur) {
-        // Encontra o caixa aberto deste usuário
+        // Encontra o caixa aberto deste usuÃ¡rio
         const sessaoAberta = await tx.mscaixa_sessao.findFirst({
           where: {
             codusur_abertura: parseInt(codusur),
@@ -131,8 +131,8 @@ export const receberConta = async (req, res) => {
               tipo: "ENTRADA",
               categoria: "RECEBIMENTO_CONTA",
               valor: valor,
-              codplano_pagamento: 1, // Assumindo 1 = Dinheiro por enquanto, o ideal é o frontend enviar
-              observacao: `Recebimento Ref. Crediário Conta #${conta.id}`
+              codplano_pagamento: 1, // Assumindo 1 = Dinheiro por enquanto, o ideal Ã© o frontend enviar
+              observacao: `Recebimento Ref. CrediÃ¡rio Conta #${conta.id}`
             }
           });
         }

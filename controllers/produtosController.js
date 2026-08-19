@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js"
+﻿import prisma from "../prismaClient.js"
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from "../utils/cloudinary.js"
 import { logAuditoria, logAlteracoes } from "../services/auditService.js"
 
@@ -27,7 +27,7 @@ export async function listarProdutos(req, res) {
     }, {});
 
 
-    // Se o produto tiver um preço na tabela de preços, sobrepõe. Senão, vai 0.
+    // Se o produto tiver um preÃ§o na tabela de preÃ§os, sobrepÃµe. SenÃ£o, vai 0.
     const produtosFormatados = produtos.map(p => {
       let precoFinal = 0;
       let precoCartaoFinal = 0;
@@ -39,7 +39,7 @@ export async function listarProdutos(req, res) {
         custoFinal = Number(p.mstabela_preco[0].preco_custo || 0);
       }
       
-      // Remove a propriedade mstabela_preco para não poluir o JSON
+      // Remove a propriedade mstabela_preco para nÃ£o poluir o JSON
       const { mstabela_preco, ...resto } = p;
       
       return {
@@ -70,7 +70,7 @@ export async function criarProdutos(req, res) {
         where: { codigo_barras: req.body.codigo_barras }
       });
       if (existeEan) {
-        return res.status(400).json({ erro: "Já existe um produto cadastrado com este código de barras." });
+        return res.status(400).json({ erro: "JÃ¡ existe um produto cadastrado com este cÃ³digo de barras." });
       }
     }
 
@@ -125,16 +125,16 @@ export async function alterarProdutos(req, res) {
   const { ...dados } = req.body;
 
   if (!codproduto) {
-    return res.status(400).json({ erro: "O código do produto é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo do produto Ã© obrigatÃ³rio" });
   }
-  // Remover campos que não devem ser atualizados
+  // Remover campos que nÃ£o devem ser atualizados
   const camposProibidos = ["data_cadastro", "ativo"];
   camposProibidos.forEach(campo => delete dados[campo]);
   if (dados.descricao) {
     dados.descricao = dados.descricao.toUpperCase();
   }
 
-  // Converter campos numéricos vindos do FormData
+  // Converter campos numÃ©ricos vindos do FormData
   if (dados.codcategoria !== undefined) dados.codcategoria = Number(dados.codcategoria);
   if (dados.estoque_minimo !== undefined) dados.estoque_minimo = Number(dados.estoque_minimo);
   if (dados.codfornecedor !== undefined) dados.codfornecedor = Number(dados.codfornecedor);
@@ -158,7 +158,7 @@ export async function alterarProdutos(req, res) {
         }
       });
       if (existeEan) {
-        return res.status(400).json({ erro: "Já existe outro produto cadastrado com este código de barras." });
+        return res.status(400).json({ erro: "JÃ¡ existe outro produto cadastrado com este cÃ³digo de barras." });
       }
     }
 
@@ -167,7 +167,7 @@ export async function alterarProdutos(req, res) {
     });
 
     if (!produtoAtual) {
-      return res.status(404).json({ erro: "Produto não encontrado." });
+      return res.status(404).json({ erro: "Produto nÃ£o encontrado." });
     }
 
     let imagem_url = produtoAtual.imagem_url;
@@ -188,10 +188,10 @@ export async function alterarProdutos(req, res) {
       imagem_public_id = null;
     }
 
-    // Limpar remover_imagem de 'dados' para não dar erro no Prisma
+    // Limpar remover_imagem de 'dados' para nÃ£o dar erro no Prisma
     delete dados.remover_imagem;
     
-    // Se o produto estava em revisão ('R'), ao salvar ele passa a ser ativo ('S')
+    // Se o produto estava em revisÃ£o ('R'), ao salvar ele passa a ser ativo ('S')
     if (produtoAtual.ativo === 'R') {
       dados.ativo = 'S';
     }
@@ -224,7 +224,7 @@ export async function alterarStatusProduto(req, res) {
   const { ativo } = req.body; // espera { "ativo": "S" } ou { "ativo": "N" }
 
   if (!codproduto) {
-    return res.status(400).json({ erro: "O código do produto é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo do produto Ã© obrigatÃ³rio" });
   }
 
   if (ativo !== "S" && ativo !== "N") {
@@ -239,7 +239,7 @@ export async function alterarStatusProduto(req, res) {
     res.json(produtoAtualizado);
   } catch (error) {
     if (error.code === "P2025") {
-      return res.status(404).json({ erro: "Produto não encontrado" });
+      return res.status(404).json({ erro: "Produto nÃ£o encontrado" });
     }
     console.error(error);
     res.status(500).json({ erro: "Erro ao alterar status do produto" });

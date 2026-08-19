@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js"
+﻿import prisma from "../prismaClient.js"
 
 export async function listarLotes(req, res) {
   try {
@@ -39,9 +39,9 @@ export async function alterarEstoque(req, res) {
   const {...dados} = req.body;
 
  if (!codestoque) {
-    return res.status(400).json({ erro: "O código do estoque é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo do estoque Ã© obrigatÃ³rio" });
   }
-  // Remover campos que não devem ser atualizados
+  // Remover campos que nÃ£o devem ser atualizados
   const camposProibidos = ["data_cadastro", "ativo"];
   camposProibidos.forEach(campo => delete dados[campo]);
   try {
@@ -81,7 +81,7 @@ export async function listarMovimentacoesSaida(req, res) {
     res.json(saidasComProduto);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao buscar saídas" });
+    res.status(500).json({ erro: "Erro ao buscar saÃ­das" });
   }
 }
 
@@ -99,7 +99,7 @@ export async function registrarEntradaManual(req, res) {
     }
 
     if (!filialDestino || !itens || !itens.length) {
-      return res.status(400).json({ erro: "Filial destino e itens são obrigatórios" });
+      return res.status(400).json({ erro: "Filial destino e itens sÃ£o obrigatÃ³rios" });
     }
 
     const ajusteUuid = randomUUID();
@@ -138,7 +138,7 @@ export async function registrarEntradaManual(req, res) {
           });
         }
 
-        // Registrar movimentação individual com UUID comum
+        // Registrar movimentaÃ§Ã£o individual com UUID comum
         await tx.msmov_estoque.create({
           data: {
             codproduto: item.codproduto,
@@ -181,7 +181,7 @@ export async function registrarEntradaManual(req, res) {
             });
           }
         } else {
-          // Se não enviou validade, cria/atualiza lote genérico SEM_LOTE e sem validade
+          // Se nÃ£o enviou validade, cria/atualiza lote genÃ©rico SEM_LOTE e sem validade
           const loteExistente = await tx.msestoque_lote.findFirst({
             where: {
               codproduto: item.codproduto,
@@ -258,7 +258,7 @@ export async function listarMovimentacoesEntrada(req, res) {
     res.status(200).json(agrupadosArray);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Erro ao listar movimentações de entrada." });
+    res.status(500).json({ error: "Erro ao listar movimentaÃ§Ãµes de entrada." });
   }
 }
 
@@ -267,7 +267,7 @@ export async function registrarSaidaManual(req, res) {
     const { codproduto, codfilial, quantidade, origem } = req.body;
 
     if (!codproduto || !quantidade || quantidade <= 0) {
-      return res.status(400).json({ erro: "Produto e quantidade válidos são obrigatórios" });
+      return res.status(400).json({ erro: "Produto e quantidade vÃ¡lidos sÃ£o obrigatÃ³rios" });
     }
 
     const filialId = codfilial ? Number(codfilial) : 1;
@@ -308,7 +308,7 @@ export async function registrarSaidaManual(req, res) {
     res.json(result);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao registrar saída" });
+    res.status(500).json({ erro: "Erro ao registrar saÃ­da" });
   }
 }
 
@@ -322,11 +322,11 @@ export async function cancelarSaidaManual(req, res) {
     });
 
     if (!mov) {
-      return res.status(404).json({ erro: "Movimentação não encontrada" });
+      return res.status(404).json({ erro: "MovimentaÃ§Ã£o nÃ£o encontrada" });
     }
 
     if (mov.tipo !== "SAIDA") {
-      return res.status(400).json({ erro: "Esta movimentação não é uma saída" });
+      return res.status(400).json({ erro: "Esta movimentaÃ§Ã£o nÃ£o Ã© uma saÃ­da" });
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -362,8 +362,8 @@ export async function cancelarSaidaManual(req, res) {
 
     res.json(result);
   } catch (error) {
-    console.error("Erro ao cancelar saída:", error);
-    res.status(500).json({ erro: "Erro ao cancelar saída" });
+    console.error("Erro ao cancelar saÃ­da:", error);
+    res.status(500).json({ erro: "Erro ao cancelar saÃ­da" });
   }
 }
 
@@ -502,7 +502,7 @@ export async function transferirEstoque(req, res) {
     const { codproduto, filialOrigem, filialDestino, quantidade, observacao } = req.body;
 
     if (!codproduto || !filialOrigem || !filialDestino || !quantidade || quantidade <= 0) {
-      return res.status(400).json({ erro: "Dados inválidos para transferência" });
+      return res.status(400).json({ erro: "Dados invÃ¡lidos para transferÃªncia" });
     }
 
     if (filialOrigem === filialDestino) {
@@ -638,10 +638,10 @@ export async function transferirEstoque(req, res) {
       return true;
     });
 
-    res.json({ mensagem: "Transferência concluída com sucesso" });
+    res.json({ mensagem: "TransferÃªncia concluÃ­da com sucesso" });
   } catch (error) {
     console.error(error);
-    res.status(400).json({ erro: error.message || "Erro ao realizar transferência" });
+    res.status(400).json({ erro: error.message || "Erro ao realizar transferÃªncia" });
   }
 }
 
@@ -671,7 +671,7 @@ export async function listarPendenciasRastreabilidade(req, res) {
   try {
     const { codfilial } = req.query;
     if (!codfilial || codfilial === "undefined" || isNaN(Number(codfilial))) {
-      return res.status(400).json({ erro: 'A filial é obrigatória para rastreabilidade.' });
+      return res.status(400).json({ erro: 'A filial Ã© obrigatÃ³ria para rastreabilidade.' });
     }
 
     const produtosComValidade = await prisma.msproduto.findMany({
@@ -722,7 +722,7 @@ export async function listarPendenciasRastreabilidade(req, res) {
     res.json(pendencias);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: 'Erro ao buscar pendências.' });
+    res.status(500).json({ erro: 'Erro ao buscar pendÃªncias.' });
   }
 }
 
@@ -732,18 +732,18 @@ export async function atribuirValidadeManual(req, res) {
     if (!codproduto || !codfilial || !quantidade || !validade) return res.status(400).json({ erro: 'Dados incompletos.' });
 
     await prisma.$transaction(async (tx) => {
-      // 1. Verificar pendência limite
+      // 1. Verificar pendÃªncia limite
       const estoque = await tx.msestoque.findFirst({
         where: { codproduto: Number(codproduto), codfilial: Number(codfilial) }
       });
-      if (!estoque) throw new Error('Estoque não encontrado.');
+      if (!estoque) throw new Error('Estoque nÃ£o encontrado.');
       
       const agregados = await tx.msestoque_lote.aggregate({
         where: { codproduto: Number(codproduto), codfilial: Number(codfilial), validade: { not: null } },
         _sum: { quantidade: true }
       });
       const pendente = estoque.quantidade - (agregados._sum.quantidade || 0);
-      if (Number(quantidade) > pendente) throw new Error(`Quantidade máxima permitida para atribuição é ${pendente}.`);
+      if (Number(quantidade) > pendente) throw new Error(`Quantidade mÃ¡xima permitida para atribuiÃ§Ã£o Ã© ${pendente}.`);
 
       // 2. Criar ou incrementar o lote
       const validadeDate = new Date(validade);
@@ -768,7 +768,7 @@ export async function atribuirValidadeManual(req, res) {
         });
       }
 
-      // Abater dos lotes gen�ricos (sem validade) para manter a soma correta
+      // Abater dos lotes genéricos (sem validade) para manter a soma correta
       const lotesGenericos = await tx.msestoque_lote.findMany({
         where: { codproduto: Number(codproduto), codfilial: Number(codfilial), validade: null, quantidade: { gt: 0 } }
       });
@@ -796,7 +796,7 @@ export async function atribuirValidadeManual(req, res) {
       });
     });
 
-    res.json({ mensagem: 'Validade atribuída com sucesso.' });
+    res.json({ mensagem: 'Validade atribuÃ­da com sucesso.' });
   } catch (error) {
     console.error(error);
     res.status(400).json({ erro: error.message || 'Erro ao atribuir validade.' });
@@ -810,7 +810,7 @@ export async function descartarLote(req, res) {
 
     await prisma.$transaction(async (tx) => {
       const lote = await tx.msestoque_lote.findUnique({ where: { id: Number(id_lote) } });
-      if (!lote) throw new Error('Lote não encontrado.');
+      if (!lote) throw new Error('Lote nÃ£o encontrado.');
       if (lote.quantidade < Number(quantidade)) throw new Error('Quantidade insuficiente no lote.');
 
       // 1. Reduzir do lote
@@ -844,6 +844,7 @@ export async function descartarLote(req, res) {
     res.status(400).json({ erro: error.message || 'Erro ao descartar lote.' });
   }
 }
+
 
 
 

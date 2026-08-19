@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js"
+﻿import prisma from "../prismaClient.js"
 
 
 
@@ -15,7 +15,7 @@ export async function listarcategorias(req, res) {
 export async function criarcategorias(req, res) {
   const { categoria, ativo, margem_padrao } = req.body;
   if (!categoria) {
-    return res.status(400).json({ erro: "O nome da categoria é obrigatório" });
+    return res.status(400).json({ erro: "O nome da categoria Ã© obrigatÃ³rio" });
   }
 
   try {
@@ -38,9 +38,9 @@ export async function alterarcategorias(req, res) {
   const {...dados} = req.body;
 
  if (!codcategoria) {
-    return res.status(400).json({ erro: "O código do categoria é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo do categoria Ã© obrigatÃ³rio" });
   }
-  // Remover campos que não devem ser atualizados
+  // Remover campos que nÃ£o devem ser atualizados
   const camposProibidos = ["data_cadastro", "ativo"];
   camposProibidos.forEach(campo => delete dados[campo]);
   try {
@@ -59,7 +59,7 @@ export async function alterarStatuscategoria(req, res) {
   const { ativo } = req.body; // espera { "ativo": "S" } ou { "ativo": "N" }
 
   if (!codcategoria) {
-    return res.status(400).json({ erro: "O código da categoria é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo da categoria Ã© obrigatÃ³rio" });
   }
 
   if (ativo !== "S" && ativo !== "N") {
@@ -74,7 +74,7 @@ export async function alterarStatuscategoria(req, res) {
     res.json(categoriaAtualizado);
   } catch (error) {
     if (error.code === "P2025") {
-      return res.status(404).json({ erro: "categoria não encontrado" });
+      return res.status(404).json({ erro: "categoria nÃ£o encontrado" });
     }
     console.error(error);
     res.status(500).json({ erro: "Erro ao alterar status do categoria" });

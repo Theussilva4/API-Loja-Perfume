@@ -1,10 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { creditarEstoque, debitarEstoque } from "../services/estoqueService.js";
 
 const prisma = new PrismaClient();
 
-// Função auxiliar para gerar numero CMP-XXXXXX
+// FunÃ§Ã£o auxiliar para gerar numero CMP-XXXXXX
 const generateCompraCode = async () => {
   const lastCompra = await prisma.mscompra.findFirst({
     orderBy: { codcompra: 'desc' }
@@ -27,15 +27,15 @@ export const importarXml = async (req, res) => {
     });
     const parsedData = parser.parse(xmlData);
 
-    // Navegar até a tag principal (nfeproc -> NFe -> infNFe)
+    // Navegar atÃ© a tag principal (nfeproc -> NFe -> infNFe)
     const nfe = parsedData.nfeProc?.NFe?.infNFe || parsedData.NFe?.infNFe;
     if (!nfe) {
-      return res.status(400).json({ error: "XML inválido. Não é uma NF-e reconhecida." });
+      return res.status(400).json({ error: "XML invÃ¡lido. NÃ£o Ã© uma NF-e reconhecida." });
     }
 
     const emitente = nfe.emit;
     if (!emitente) {
-      return res.status(400).json({ error: "Dados do emitente não encontrados no XML." });
+      return res.status(400).json({ error: "Dados do emitente nÃ£o encontrados no XML." });
     }
 
     const cnpjEmitente = emitente.CNPJ ? emitente.CNPJ.toString() : "";
@@ -62,7 +62,7 @@ export const importarXml = async (req, res) => {
       });
     }
 
-    // 2. Verificar se a nota já foi importada e não está cancelada
+    // 2. Verificar se a nota jÃ¡ foi importada e nÃ£o estÃ¡ cancelada
     const dataEmissao = nfe.ide?.dhEmi ? new Date(nfe.ide.dhEmi) : new Date();
     const numeroNFe = nfe.ide?.nNF || "";
     const valorTotalNF = nfe.total?.ICMSTot?.vNF || 0;
@@ -79,7 +79,7 @@ export const importarXml = async (req, res) => {
       });
 
       if (notaExistente) {
-        return res.status(400).json({ error: `A nota fiscal ${numeroNFe} já foi importada anteriormente e encontra-se no status ${notaExistente.status}. Cancele-a antes de importar novamente.` });
+        return res.status(400).json({ error: `A nota fiscal ${numeroNFe} jÃ¡ foi importada anteriormente e encontra-se no status ${notaExistente.status}. Cancele-a antes de importar novamente.` });
       }
     }
 
@@ -134,14 +134,14 @@ export const importarXml = async (req, res) => {
       if (produtoDb) {
         resultadosProdutos.existentes++;
       } else {
-        // Criar pré-cadastro
+        // Criar prÃ©-cadastro
         produtoDb = await prisma.msproduto.create({
           data: {
             descricao: xProd,
             codigo_barras: eanNumber,
-            ativo: "R", // "R" = Revisão Pendente
-            codcategoria: 1, // Fixando categoria padrão
-            codmarca: 1 // Fixando marca padrão
+            ativo: "R", // "R" = RevisÃ£o Pendente
+            codcategoria: 1, // Fixando categoria padrÃ£o
+            codmarca: 1 // Fixando marca padrÃ£o
           }
         });
 
@@ -150,7 +150,7 @@ export const importarXml = async (req, res) => {
           data: {
             codproduto: produtoDb.codproduto,
             preco_custo: vUnCom,
-            preco_venda: vUnCom * 2, // Sugestão
+            preco_venda: vUnCom * 2, // SugestÃ£o
           }
         });
         
@@ -209,7 +209,7 @@ export const finalizarConferencia = async (req, res) => {
     const { itens, codfilial } = req.body; // itens = [{ codproduto, quantidade, lote, validade, cEAN (novo) }]
 
     if (!uuid || !itens) {
-      return res.status(400).json({ error: "Dados incompletos para finalização." });
+      return res.status(400).json({ error: "Dados incompletos para finalizaÃ§Ã£o." });
     }
 
     const filialId = codfilial || 1;
@@ -219,10 +219,10 @@ export const finalizarConferencia = async (req, res) => {
       where: { uuid }
     });
 
-    if (!compra) return res.status(404).json({ error: "Compra não encontrada." });
+    if (!compra) return res.status(404).json({ error: "Compra nÃ£o encontrada." });
 
     if (compra.status !== "EM_CONFERENCIA") {
-      return res.status(400).json({ error: "A compra já foi processada anteriormente." });
+      return res.status(400).json({ error: "A compra jÃ¡ foi processada anteriormente." });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -309,11 +309,11 @@ export const finalizarConferencia = async (req, res) => {
       });
     });
 
-    return res.status(200).json({ message: "Conferência finalizada com sucesso! Estoque atualizado." });
+    return res.status(200).json({ message: "ConferÃªncia finalizada com sucesso! Estoque atualizado." });
 
   } catch (error) {
-    console.error("Erro na conferência:", error);
-    return res.status(500).json({ error: "Erro ao finalizar a conferência." });
+    console.error("Erro na conferÃªncia:", error);
+    return res.status(500).json({ error: "Erro ao finalizar a conferÃªncia." });
   }
 };
 
@@ -340,7 +340,7 @@ export const createCompra = async (req, res) => {
     // Calcula total
     const valor_total = itens.reduce((acc, item) => acc + (item.quantidade * item.custo_unitario), 0);
     const codigo_compra = await generateCompraCode();
-    const status = "FINALIZADA"; // Para simplificar o MVP, vamos iniciar já finalizando e atualizando estoque. Pode ser ABERTA no futuro.
+    const status = "FINALIZADA"; // Para simplificar o MVP, vamos iniciar jÃ¡ finalizando e atualizando estoque. Pode ser ABERTA no futuro.
 
     // Busca configuracao para saber como tratar o custo
     const config = await prisma.msconfiguracao_empresa.findFirst();
@@ -373,7 +373,7 @@ export const createCompra = async (req, res) => {
       // 2. Se finalizada, movimenta estoque
       if (status === "FINALIZADA") {
         for (const item of itens) {
-          // Busca informações atuais do produto antes de alterar o estoque
+          // Busca informaÃ§Ãµes atuais do produto antes de alterar o estoque
           const [tabelaPreco, estoqueAtual] = await Promise.all([
             tx.mstabela_preco.findFirst({
               where: { codproduto: item.codproduto, ativo: 'S' }
@@ -391,24 +391,24 @@ export const createCompra = async (req, res) => {
           // Adiciona estoque, lote e movimento
           await creditarEstoque(tx, item.codproduto, codfilial || 1, item.quantidade, "COMPRA", compra.codcompra, item.lote, item.validade, item.custo_unitario);
           
-          // Lógica de Atualização de Custo
+          // LÃ³gica de AtualizaÃ§Ã£o de Custo
           if (tabelaPreco) {
             let novoCusto = null;
 
-            // Se o frontend enviou atualizações explícitas (Ex: a opção "PERGUNTAR" gerou um modal)
+            // Se o frontend enviou atualizaÃ§Ãµes explÃ­citas (Ex: a opÃ§Ã£o "PERGUNTAR" gerou um modal)
             if (atualizacoesCusto && Array.isArray(atualizacoesCusto)) {
               const explicitUpdate = atualizacoesCusto.find(a => String(a.codproduto) === String(item.codproduto));
               if (explicitUpdate && explicitUpdate.metodo !== "MANTER" && explicitUpdate.novo_custo) {
                 novoCusto = explicitUpdate.novo_custo;
               }
             } else if (atualizacaoConfig !== "MANTER") {
-              // Comportamento automático de acordo com a configuração
+              // Comportamento automÃ¡tico de acordo com a configuraÃ§Ã£o
               if (atualizacaoConfig === "ULTIMO_CUSTO") {
                 novoCusto = item.custo_unitario;
               } else if (atualizacaoConfig === "CUSTO_MEDIO" || atualizacaoConfig === "PERGUNTAR") {
-                // OBS: Se for PERGUNTAR e não veio 'atualizacoesCusto', significa que não houve variação 
-                // e o frontend ignorou, mas se o custo unitário for diferente do atual, podemos não fazer nada ou forçar médio.
-                // Mas geralmente, se for CUSTO_MEDIO, faz a matemática:
+                // OBS: Se for PERGUNTAR e nÃ£o veio 'atualizacoesCusto', significa que nÃ£o houve variaÃ§Ã£o 
+                // e o frontend ignorou, mas se o custo unitÃ¡rio for diferente do atual, podemos nÃ£o fazer nada ou forÃ§ar mÃ©dio.
+                // Mas geralmente, se for CUSTO_MEDIO, faz a matemÃ¡tica:
                 const currentQuantity = estoqueAtual?.quantidade || 0;
                 const currentCost = Number(tabelaPreco.preco_custo || 0);
                 
@@ -423,7 +423,7 @@ export const createCompra = async (req, res) => {
             }
 
             if (novoCusto !== null) {
-              // Fecha a vigência atual e abre nova para manter histórico
+              // Fecha a vigÃªncia atual e abre nova para manter histÃ³rico
               await tx.mstabela_preco.update({
                 where: { codpreco: tabelaPreco.codpreco },
                 data: { data_fim: new Date() }
@@ -467,7 +467,7 @@ export const getCompraById = async (req, res) => {
         }
       }
     });
-    if(!compra) return res.status(404).json({ error: "Não encontrado" });
+    if(!compra) return res.status(404).json({ error: "NÃ£o encontrado" });
     res.json(compra);
   } catch (error) {
     res.status(500).json({ error: "Erro ao buscar compra." });
@@ -480,7 +480,7 @@ export const updateCompraStatus = async (req, res) => {
     const { status, motivo_cancelamento } = req.body;
 
     if (status !== "CANCELADA") {
-      return res.status(400).json({ error: "Apenas o status 'CANCELADA' é suportado para atualização no momento." });
+      return res.status(400).json({ error: "Apenas o status 'CANCELADA' Ã© suportado para atualizaÃ§Ã£o no momento." });
     }
 
     if (!motivo_cancelamento || motivo_cancelamento.trim().length < 15) {
@@ -495,19 +495,19 @@ export const updateCompraStatus = async (req, res) => {
       });
 
       if (!compra) {
-        throw new Error("Compra não encontrada.");
+        throw new Error("Compra nÃ£o encontrada.");
       }
 
       if (compra.status === "CANCELADA") {
-        throw new Error("Esta compra já está cancelada.");
+        throw new Error("Esta compra jÃ¡ estÃ¡ cancelada.");
       }
 
-      // 2. Se a compra estava finalizada/concluída, estorna o estoque
+      // 2. Se a compra estava finalizada/concluÃ­da, estorna o estoque
       if (compra.status === "FINALIZADA" || compra.status === "CONCLUIDA") {
         for (const item of compra.mscompra_item) {
           // Cria movimento de estorno e atualiza lote/saldo
           await debitarEstoque(tx, item.codproduto, compra.codfilial || 1, item.quantidade, "CANCELAMENTO_COMPRA", compra.codcompra, item.lote);
-          // Nota: O custo do produto (msproduto.custo) não é revertido para o valor anterior (conforme MVP).
+          // Nota: O custo do produto (msproduto.custo) nÃ£o Ã© revertido para o valor anterior (conforme MVP).
         }
       }
 

@@ -1,4 +1,4 @@
-import * as usuarioService from "../services/usuarioService.js";
+﻿import * as usuarioService from "../services/usuarioService.js";
 
 export async function listarUsuario(req, res) {
   try {

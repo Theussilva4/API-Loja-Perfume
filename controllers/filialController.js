@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js"
+﻿import prisma from "../prismaClient.js"
 
 
 
@@ -19,9 +19,9 @@ export async function alterarFilial(req, res) {
   const {...dados} = req.body;
 
  if (!codfilial) {
-    return res.status(400).json({ erro: "O código do filial é obrigatório" });
+    return res.status(400).json({ erro: "O cÃ³digo do filial Ã© obrigatÃ³rio" });
   }
-  // Remover campos que não devem ser atualizados
+  // Remover campos que nÃ£o devem ser atualizados
   const camposProibidos = ["data_cadastro", "ativo"];
   camposProibidos.forEach(campo => delete dados[campo]);
   try {

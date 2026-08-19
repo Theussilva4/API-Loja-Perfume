@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js";
+﻿import prisma from "../prismaClient.js";
 
 export async function listarPlanosPagamento(req, res) {
   try {
@@ -20,10 +20,10 @@ export async function criarPlanoPagamento(req, res) {
   try {
     const { descricao, tipo_pagamento, tem_acrescimo, taxa_acrescimo, max_parcelas, valor_minimo_parcela, regras_parcelamento } = req.body;
 
-    // validação
+    // validaÃ§Ã£o
     if (!descricao) {
       return res.status(400).json({
-        erro: "Descrição é obrigatória"
+        erro: "DescriÃ§Ã£o Ã© obrigatÃ³ria"
       });
     }
 
@@ -56,7 +56,7 @@ export async function atualizarPlanoPagamento(req, res) {
     const { descricao, tipo_pagamento, tem_acrescimo, taxa_acrescimo, max_parcelas, valor_minimo_parcela, regras_parcelamento } = req.body;
 
     if (!descricao) {
-      return res.status(400).json({ erro: "Descrição é obrigatória" });
+      return res.status(400).json({ erro: "DescriÃ§Ã£o Ã© obrigatÃ³ria" });
     }
 
     const plano = await prisma.MSPLANOPAGAMENTO.update({

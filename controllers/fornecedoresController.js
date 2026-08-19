@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -42,7 +42,7 @@ export const updateFornecedor = async (req, res) => {
     
     // Procura o ID interno via UUID
     const f = await prisma.msfornecedor.findFirst({ where: { uuid } });
-    if(!f) return res.status(404).json({ error: "Não encontrado" });
+    if(!f) return res.status(404).json({ error: "NÃ£o encontrado" });
 
     const fornecedor = await prisma.msfornecedor.update({
       where: { codfornecedor: f.codfornecedor },
@@ -67,9 +67,9 @@ export const deleteFornecedor = async (req, res) => {
   try {
     const { uuid } = req.params;
     const f = await prisma.msfornecedor.findFirst({ where: { uuid } });
-    if(!f) return res.status(404).json({ error: "Não encontrado" });
+    if(!f) return res.status(404).json({ error: "NÃ£o encontrado" });
 
-    // Exclusão Lógica
+    // ExclusÃ£o LÃ³gica
     await prisma.msfornecedor.update({
       where: { codfornecedor: f.codfornecedor },
       data: { ativo: "N" }

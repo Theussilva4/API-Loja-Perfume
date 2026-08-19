@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -20,8 +20,8 @@ export const getConfiguracoes = async (req, res) => {
     }
     return res.status(200).json(config);
   } catch (error) {
-    console.error("Erro ao buscar configurações:", error);
-    return res.status(500).json({ error: "Erro ao buscar configurações" });
+    console.error("Erro ao buscar configuraÃ§Ãµes:", error);
+    return res.status(500).json({ error: "Erro ao buscar configuraÃ§Ãµes" });
   }
 };
 
@@ -64,7 +64,7 @@ export const updateConfiguracoes = async (req, res) => {
     
     return res.status(200).json(config);
   } catch (error) {
-    console.error("Erro ao atualizar configurações:", error);
-    return res.status(500).json({ error: "Erro ao atualizar configurações" });
+    console.error("Erro ao atualizar configuraÃ§Ãµes:", error);
+    return res.status(500).json({ error: "Erro ao atualizar configuraÃ§Ãµes" });
   }
 };

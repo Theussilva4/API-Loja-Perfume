@@ -1,7 +1,7 @@
-import * as precificacaoService from "../services/precificacaoService.js";
+﻿import * as precificacaoService from "../services/precificacaoService.js";
 import prisma from "../prismaClient.js";
 
-// --- CONFIGURAÇÕES ---
+// --- CONFIGURAÃÃES ---
 
 export async function getConfig(req, res) {
   try {
@@ -9,7 +9,7 @@ export async function getConfig(req, res) {
     res.json(config);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao buscar configurações comerciais" });
+    res.status(500).json({ erro: "Erro ao buscar configuraÃ§Ãµes comerciais" });
   }
 }
 
@@ -19,11 +19,11 @@ export async function updateConfig(req, res) {
     res.json(config);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao atualizar configurações comerciais" });
+    res.status(500).json({ erro: "Erro ao atualizar configuraÃ§Ãµes comerciais" });
   }
 }
 
-// --- TABELA DE PREÇOS ---
+// --- TABELA DE PREÃOS ---
 
 export async function listarTabelaPrecos(req, res) {
   try {
@@ -42,7 +42,7 @@ export async function listarTabelaPrecos(req, res) {
     const mapCategorias = {};
     categorias.forEach(c => mapCategorias[c.codcategoria] = c.margem_padrao ? Number(c.margem_padrao) : null);
 
-    // Anexar o preço calculado a cada produto
+    // Anexar o preÃ§o calculado a cada produto
     const resultado = await Promise.all(produtos.map(async (p) => {
       const calculo = await precificacaoService.calculatePrice(p.codproduto);
       return {
@@ -55,7 +55,7 @@ export async function listarTabelaPrecos(req, res) {
     res.json(resultado);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao buscar tabela de preços" });
+    res.status(500).json({ erro: "Erro ao buscar tabela de preÃ§os" });
   }
 }
 
@@ -69,7 +69,7 @@ export async function getHistoricoPrecos(req, res) {
     res.json(historico);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao buscar histórico" });
+    res.status(500).json({ erro: "Erro ao buscar histÃ³rico" });
   }
 }
 
@@ -82,7 +82,7 @@ export async function definirPrecoBase(req, res) {
     res.json(novoPreco);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao definir preço" });
+    res.status(500).json({ erro: "Erro ao definir preÃ§o" });
   }
 }
 
@@ -95,11 +95,11 @@ export async function simularPreco(req, res) {
     res.json(calculo);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao simular preço" });
+    res.status(500).json({ erro: "Erro ao simular preÃ§o" });
   }
 }
 
-// --- PROMOÇÕES ---
+// --- PROMOÃÃES ---
 
 export async function listarPromocoes(req, res) {
   try {
@@ -114,7 +114,7 @@ export async function listarPromocoes(req, res) {
     res.json(promocoes);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao buscar promoções" });
+    res.status(500).json({ erro: "Erro ao buscar promoÃ§Ãµes" });
   }
 }
 
@@ -148,7 +148,7 @@ export async function criarPromocao(req, res) {
     res.json(promocao);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao criar promoção" });
+    res.status(500).json({ erro: "Erro ao criar promoÃ§Ã£o" });
   }
 }
 
@@ -159,14 +159,14 @@ export async function deletarPromocao(req, res) {
     await prisma.mspromocao_item.deleteMany({
       where: { codpromocao: Number(codpromocao) }
     });
-    // Apaga promoção
+    // Apaga promoÃ§Ã£o
     await prisma.mspromocao.delete({
       where: { codpromocao: Number(codpromocao) }
     });
     res.json({ sucesso: true });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao deletar promoção" });
+    res.status(500).json({ erro: "Erro ao deletar promoÃ§Ã£o" });
   }
 }
 
@@ -183,7 +183,7 @@ export async function atualizarPromocao(req, res) {
       where: { codpromocao: Number(codpromocao) }
     });
 
-    // Atualiza a promoção e insere os novos itens
+    // Atualiza a promoÃ§Ã£o e insere os novos itens
     const promocao = await prisma.mspromocao.update({
       where: { codpromocao: Number(codpromocao) },
       data: {
@@ -208,6 +208,6 @@ export async function atualizarPromocao(req, res) {
     res.json(promocao);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ erro: "Erro ao atualizar promoção" });
+    res.status(500).json({ erro: "Erro ao atualizar promoÃ§Ã£o" });
   }
 }

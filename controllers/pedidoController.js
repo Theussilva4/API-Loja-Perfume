@@ -1,6 +1,6 @@
-import prisma from "../prismaClient.js"
+﻿import prisma from "../prismaClient.js"
 
-// Função auxiliar para gerar codigo da venda
+// FunÃ§Ã£o auxiliar para gerar codigo da venda
 const getVencimentoPadrao = () => {
   const d = new Date();
   d.setDate(d.getDate() + 30);
@@ -19,7 +19,7 @@ const generateVendaCode = async () => {
 const baixarEstoqueFefo = async (tx, codproduto, codfilial, quantidadeDesejada, numpedido) => {
   let qtdRestante = quantidadeDesejada;
 
-  // Busca lotes disponíveis ordenados por validade
+  // Busca lotes disponÃ­veis ordenados por validade
   const lotesComValidade = await tx.msestoque_lote.findMany({
     where: { codproduto, codfilial, quantidade: { gt: 0 }, validade: { not: null } },
     orderBy: { validade: 'asc' }
@@ -185,15 +185,15 @@ export async function criarPedido(req, res) {
       status, // EM_DIGITACAO ou FINALIZADO
       produtos = [], // avulsos
       kits = [],      // kits comerciais
-      pagamentos = [] // pagamentos múltiplos: { codplano_pagamento, valor }
+      pagamentos = [] // pagamentos mÃºltiplos: { codplano_pagamento, valor }
     } = req.body;
 
-    // Se vier itens (legado) e não tiver produtos, mapear para produtos para retrocompatibilidade
+    // Se vier itens (legado) e nÃ£o tiver produtos, mapear para produtos para retrocompatibilidade
     const itensLegado = req.body.itens || [];
     const listaProdutos = produtos.length > 0 ? produtos : itensLegado;
 
     if (!codcliente || (listaProdutos.length === 0 && kits.length === 0)) {
-      return res.status(400).json({ erro: "Dados inválidos: O pedido precisa ter produtos ou kits." });
+      return res.status(400).json({ erro: "Dados invÃ¡lidos: O pedido precisa ter produtos ou kits." });
     }
 
     const codigo_venda = await generateVendaCode();
@@ -208,7 +208,7 @@ export async function criarPedido(req, res) {
           where: { status: 'ABERTO' }
         });
         if (!sessaoCaixa) {
-          throw new Error("Você precisa ter um caixa aberto para finalizar uma venda.");
+          throw new Error("VocÃª precisa ter um caixa aberto para finalizar uma venda.");
         }
       }
 
@@ -238,7 +238,7 @@ export async function criarPedido(req, res) {
           include: { itens: { include: { produto: { include: { mstabela_preco: { where: { ativo: 'S' } } } } } } }
         });
 
-        if (!kitDB) throw new Error(`Kit ${k.kitId} não encontrado`);
+        if (!kitDB) throw new Error(`Kit ${k.kitId} nÃ£o encontrado`);
 
         const qtdKitVendido = Number(k.quantidade);
         const precoKitUnitario = Number(kitDB.preco_kit);
@@ -302,7 +302,7 @@ export async function criarPedido(req, res) {
         }
       }
 
-      // 3. Criar o Cabeçalho do Pedido
+      // 3. Criar o CabeÃ§alho do Pedido
       const pedido = await tx.mspedido.create({
         data: {
           codigo_venda,
@@ -336,8 +336,8 @@ export async function criarPedido(req, res) {
           }
         });
 
-        // Ratear o preço do kit entre os itens (apenas para histórico de item)
-        // Pegar o fator de desconto do kit (ex: se era 220 e virou 199, fator é 0.9045)
+        // Ratear o preÃ§o do kit entre os itens (apenas para histÃ³rico de item)
+        // Pegar o fator de desconto do kit (ex: se era 220 e virou 199, fator Ã© 0.9045)
         let somaRateio = 0;
         let fator = kp.valor_original > 0 ? kp.valor_kit / kp.valor_original : 1;
 
@@ -347,7 +347,7 @@ export async function criarPedido(req, res) {
           
           let valorTotalItemRateado;
           if (i === kp.componentes.length - 1) {
-            // Último item fica com a diferença para evitar erro de centavos
+            // Ãltimo item fica com a diferenÃ§a para evitar erro de centavos
             valorTotalItemRateado = kp.valor_kit - somaRateio;
           } else {
             const precoOriginal = Number(comp.produto.mstabela_preco?.[0]?.preco_venda || 0) * qtdItemTotal;
@@ -359,7 +359,7 @@ export async function criarPedido(req, res) {
             numpedido: pedido.numpedido,
             codproduto: comp.produto_id,
             quantidade: qtdItemTotal,
-            preco_unitario: valorTotalItemRateado / qtdItemTotal, // valor unitário rateado
+            preco_unitario: valorTotalItemRateado / qtdItemTotal, // valor unitÃ¡rio rateado
             valor_total: valorTotalItemRateado,
             pedido_kit_id: pedidoKit.id
           });
@@ -376,7 +376,7 @@ export async function criarPedido(req, res) {
         data: todosOsItensParaGravar
       });
 
-      // 6. Baixa de estoque se a venda for concluída agora
+      // 6. Baixa de estoque se a venda for concluÃ­da agora
       if (finalStatus === "FINALIZADO") {
         for (const item of todosOsItensParaGravar) {
           await baixarEstoqueFefo(tx, Number(item.codproduto), filial, Number(item.quantidade), pedido.numpedido);
@@ -416,7 +416,7 @@ export async function criarPedido(req, res) {
                   data_emissao: new Date(),
                   data_vencimento: getVencimentoPadrao(),
                   status: "PENDENTE",
-                  observacoes: `Venda ${codigo_venda} (Múltiplos)`
+                  observacoes: `Venda ${codigo_venda} (MÃºltiplos)`
                 }
               });
             } else {
@@ -500,12 +500,12 @@ export async function alterarStatus(req, res) {
       include: { mspedido_item: true }
     });
 
-    if (!pedidoAnterior) return res.status(404).json({ error: "Pedido não encontrado" });
+    if (!pedidoAnterior) return res.status(404).json({ error: "Pedido nÃ£o encontrado" });
 
     // Se estiver mudando para CANCELADO
     if (status === "CANCELADO") {
       if (pedidoAnterior.status === "CANCELADO") {
-        return res.status(400).json({ error: "Este pedido já está cancelado." });
+        return res.status(400).json({ error: "Este pedido jÃ¡ estÃ¡ cancelado." });
       }
 
       if (!motivo_cancelamento || motivo_cancelamento.trim().length < 15) {
@@ -529,7 +529,7 @@ export async function alterarStatus(req, res) {
           for (const mov of movimentos) {
             await tx.mscaixa_movimento.create({
               data: {
-                codsessao: sessaoCaixa ? sessaoCaixa.codsessao : mov.codsessao, // Se não tiver caixa aberto, joga no mesmo da venda (embora caixa devesse estar aberto)
+                codsessao: sessaoCaixa ? sessaoCaixa.codsessao : mov.codsessao, // Se nÃ£o tiver caixa aberto, joga no mesmo da venda (embora caixa devesse estar aberto)
                 codusur: usrId ? Number(usrId) : mov.codusur,
                 tipo: 'SAIDA',
                 categoria: 'ESTORNO',
@@ -559,13 +559,13 @@ export async function alterarStatus(req, res) {
     if (status === "FINALIZADO" && pedidoAnterior.status !== "FINALIZADO") {
       await prisma.$transaction(async (tx) => {
         // Verifica caixa aberto
-        // Precisamos do codusur_criou. Se não vier no body, usamos do pedidoAnterior.
+        // Precisamos do codusur_criou. Se nÃ£o vier no body, usamos do pedidoAnterior.
         const usrId = req.body.codusur_cancelou || req.body.codusur || req.usuario?.id || pedidoAnterior.codusur_criou || 1;
         const sessaoCaixa = await tx.mscaixa_sessao.findFirst({
           where: { status: 'ABERTO' }
         });
         if (!sessaoCaixa) {
-          throw new Error("Você precisa ter um caixa aberto para finalizar uma venda.");
+          throw new Error("VocÃª precisa ter um caixa aberto para finalizar uma venda.");
         }
 
         await tx.mspedido.update({
@@ -599,7 +599,7 @@ export async function alterarStatus(req, res) {
           }
         });
       });
-      return res.json({ mensagem: "Status alterado, estoque baixado e movimentação registrada no caixa." });
+      return res.json({ mensagem: "Status alterado, estoque baixado e movimentaÃ§Ã£o registrada no caixa." });
     }
 
     const pedido = await prisma.mspedido.update({
@@ -615,7 +615,7 @@ export async function alterarStatus(req, res) {
 }
 
 export async function atualizarPedido(req, res) {
-  // Simplificação: apenas permitimos atualizar se o status não estiver FINALIZADO.
+  // SimplificaÃ§Ã£o: apenas permitimos atualizar se o status nÃ£o estiver FINALIZADO.
   try {
     const { id } = req.params;
     const {
@@ -630,8 +630,8 @@ export async function atualizarPedido(req, res) {
       observacoes,
       produtos = [], // avulsos
       kits = [],      // kits comerciais
-      pagamentos = [], // pagamentos múltiplos
-      codusur // Usuário que está realizando a ação
+      pagamentos = [], // pagamentos mÃºltiplos
+      codusur // UsuÃ¡rio que estÃ¡ realizando a aÃ§Ã£o
     } = req.body;
 
     const pedidoAnterior = await prisma.mspedido.findUnique({
@@ -639,7 +639,7 @@ export async function atualizarPedido(req, res) {
     });
 
     if(pedidoAnterior.status === "FINALIZADO") {
-      return res.status(400).json({ error: "Não é possível alterar um pedido finalizado" });
+      return res.status(400).json({ error: "NÃ£o Ã© possÃ­vel alterar um pedido finalizado" });
     }
 
     const itensLegado = req.body.itens || [];
@@ -648,7 +648,7 @@ export async function atualizarPedido(req, res) {
     const descGlobal = desconto ? Number(desconto) : 0;
     const filial = codfilial ? Number(codfilial) : 1;
 
-    // Transação para deletar itens, recriar, e atualizar dados do pedido
+    // TransaÃ§Ã£o para deletar itens, recriar, e atualizar dados do pedido
     const pedido = await prisma.$transaction(async (tx) => {
       let sessaoCaixa = null;
       if (pedidoAnterior.status !== "FINALIZADO" && (status === "FINALIZADO" || status === "FINALIZADA")) {
@@ -657,7 +657,7 @@ export async function atualizarPedido(req, res) {
           where: { status: 'ABERTO' }
         });
         if (!sessaoCaixa) {
-          throw new Error("Você precisa ter um caixa aberto para finalizar uma venda.");
+          throw new Error("VocÃª precisa ter um caixa aberto para finalizar uma venda.");
         }
       }
 
@@ -690,7 +690,7 @@ export async function atualizarPedido(req, res) {
           include: { itens: { include: { produto: { include: { mstabela_preco: { where: { ativo: 'S' } } } } } } }
         });
 
-        if (!kitDB) throw new Error(`Kit ${k.kitId} não encontrado`);
+        if (!kitDB) throw new Error(`Kit ${k.kitId} nÃ£o encontrado`);
 
         const qtdKitVendido = Number(k.quantidade);
         const precoKitUnitario = Number(kitDB.preco_kit);
@@ -817,7 +817,7 @@ export async function atualizarPedido(req, res) {
           await baixarEstoqueFefo(tx, Number(item.codproduto), filial, Number(item.quantidade), updated.numpedido);
         }
 
-        // Buscar os planos de pagamento para saber se é crediário
+        // Buscar os planos de pagamento para saber se Ã© crediÃ¡rio
         const todosPlanos = await tx.mSPLANOPAGAMENTO.findMany();
         const planosMap = {};
         for(const p of todosPlanos) planosMap[p.CODPLPAG] = p.tipo_pagamento;
@@ -846,7 +846,7 @@ export async function atualizarPedido(req, res) {
                   data_emissao: new Date(),
                   data_vencimento: getVencimentoPadrao(),
                   status: "PENDENTE",
-                  observacoes: `Venda ${updated.codigo_venda} (Múltiplos)`
+                  observacoes: `Venda ${updated.codigo_venda} (MÃºltiplos)`
                 }
               });
             } else {

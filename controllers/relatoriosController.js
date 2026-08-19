@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -41,7 +41,7 @@ export const faturamentoProduto = async (req, res) => {
     if (marcaId) produtoCondition.codmarca = Number(marcaId);
     if (produtoId) produtoCondition.codproduto = Number(produtoId);
 
-    // Buscar pedidos no período
+    // Buscar pedidos no perÃ­odo
     const pedidos = await prisma.mspedido.findMany({
       where: whereCondition,
       include: {
@@ -128,6 +128,6 @@ export const faturamentoProduto = async (req, res) => {
     });
   } catch (error) {
     console.error("Erro no relatorio apuracao faturamento:", error);
-    res.status(500).json({ error: "Erro ao gerar relatório." });
+    res.status(500).json({ error: "Erro ao gerar relatÃ³rio." });
   }
 };

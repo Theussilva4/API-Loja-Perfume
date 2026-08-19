@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js";
+﻿import prisma from "../prismaClient.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -10,13 +10,13 @@ export async function login(req, res) {
   });
 
   if (!usuario) {
-    return res.status(400).json({ erro: "Usuário não encontrado" });
+    return res.status(400).json({ erro: "UsuÃ¡rio nÃ£o encontrado" });
   }
 
   const senhaValida = await bcrypt.compare(password, usuario.senha_hash);
 
   if (!senhaValida) {
-    return res.status(400).json({ erro: "Senha inválida" });
+    return res.status(400).json({ erro: "Senha invÃ¡lida" });
   }
 
   const isDefaultPassword = !usuario.senha_alterada && await bcrypt.compare("padrao", usuario.senha_hash);
@@ -36,7 +36,7 @@ export async function login(req, res) {
     token,
     usuario: {
       id: usuario.codusur,
-      nome: usuario.nome,          // ⚠️ CONFERE esse campo no banco
+      nome: usuario.nome,          // â ï¸ CONFERE esse campo no banco
       email: usuario.email,
       tipo: usuario.tipo_usuario,
       codvendedor: usuario.codvendedor,
