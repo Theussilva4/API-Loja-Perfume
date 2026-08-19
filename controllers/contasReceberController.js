@@ -45,12 +45,20 @@ export const criarConta = async (req, res) => {
   try {
     const { codcliente, codfilial, valor_total, data_vencimento, observacoes } = req.body;
 
+    let vencimentoFinal = null;
+    if (data_vencimento) {
+      vencimentoFinal = new Date(data_vencimento);
+    } else {
+      vencimentoFinal = new Date();
+      vencimentoFinal.setDate(vencimentoFinal.getDate() + 30);
+    }
+
     const novaConta = await prisma.mscontas_receber.create({
       data: {
         codcliente: parseInt(codcliente),
         codfilial: parseInt(codfilial),
         valor_total: parseFloat(valor_total),
-        data_vencimento: data_vencimento ? new Date(data_vencimento) : null,
+        data_vencimento: vencimentoFinal,
         observacoes,
         status: "PENDENTE"
       }

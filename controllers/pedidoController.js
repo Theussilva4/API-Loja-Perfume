@@ -1,6 +1,12 @@
 import prisma from "../prismaClient.js"
 
 // Função auxiliar para gerar codigo da venda
+const getVencimentoPadrao = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d;
+};
+
 const generateVendaCode = async () => {
   const lastVenda = await prisma.mspedido.findFirst({
     orderBy: { numpedido: 'desc' }
@@ -260,7 +266,41 @@ export async function criarPedido(req, res) {
       }
 
       const freteGlobal = parseFloat(valor_frete) || 0;
-      const valor_total_venda = subtotalGlobal - descGlobal + freteGlobal;
+      let valor_total_venda = Number((subtotalGlobal - descGlobal + freteGlobal).toFixed(2));
+
+      const todosPlanos = await tx.mSPLANOPAGAMENTO.findMany();
+      const planosMap = {};
+      for(const p of todosPlanos) {
+        planosMap[p.CODPLPAG] = p;
+      }
+
+      let somaPagamentos = 0;
+      let acrescimoTotalGeral = 0;
+
+      if (pagamentos && pagamentos.length > 0) {
+        for (const pag of pagamentos) {
+          somaPagamentos += pag.valor;
+          const plano = planosMap[pag.codplano_pagamento];
+          if (plano && plano.tem_acrescimo && plano.taxa_acrescimo) {
+            const taxa = Number(plano.taxa_acrescimo);
+            if (taxa > 0) {
+              const valorSemAcrescimo = pag.valor / (1 + (taxa / 100));
+              const acrescimoDestePagamento = pag.valor - valorSemAcrescimo;
+              acrescimoTotalGeral += acrescimoDestePagamento;
+              
+              pag.acrescimo_percentual = taxa;
+              pag.valor_acrescimo = Number(acrescimoDestePagamento.toFixed(2));
+            }
+          }
+        }
+        somaPagamentos = Number(somaPagamentos.toFixed(2));
+        acrescimoTotalGeral = Number(acrescimoTotalGeral.toFixed(2));
+        valor_total_venda = Number((valor_total_venda + acrescimoTotalGeral).toFixed(2));
+
+        if (somaPagamentos !== valor_total_venda && (finalStatus === "FINALIZADO" || finalStatus === "FINALIZADA")) {
+          throw new Error(`Soma de pagamentos (R$ ${somaPagamentos}) diverge do valor da venda (R$ ${valor_total_venda}).`);
+        }
+      }
 
       // 3. Criar o Cabeçalho do Pedido
       const pedido = await tx.mspedido.create({
@@ -374,6 +414,7 @@ export async function criarPedido(req, res) {
                   numpedido: pedido.numpedido,
                   valor_total: valorPag,
                   data_emissao: new Date(),
+                  data_vencimento: getVencimentoPadrao(),
                   status: "PENDENTE",
                   observacoes: `Venda ${codigo_venda} (Múltiplos)`
                 }
@@ -413,7 +454,8 @@ export async function criarPedido(req, res) {
                 numpedido: pedido.numpedido,
                 valor_total: valor_total_venda,
                 data_emissao: new Date(),
-                status: "PENDENTE",
+                  data_vencimento: getVencimentoPadrao(),
+                  status: "PENDENTE",
                 observacoes: `Venda ${codigo_venda}`
               }
             });
@@ -704,7 +746,41 @@ export async function atualizarPedido(req, res) {
       }
 
       const freteGlobal = parseFloat(valor_frete) || 0;
-      const valor_total_venda = subtotalGlobal - descGlobal + freteGlobal;
+      let valor_total_venda = Number((subtotalGlobal - descGlobal + freteGlobal).toFixed(2));
+
+      const todosPlanosUpdate = await tx.mSPLANOPAGAMENTO.findMany();
+      const planosMapUpdate = {};
+      for(const p of todosPlanosUpdate) {
+        planosMapUpdate[p.CODPLPAG] = p;
+      }
+
+      let somaPagamentosUpdate = 0;
+      let acrescimoTotalGeralUpdate = 0;
+
+      if (pagamentos && pagamentos.length > 0) {
+        for (const pag of pagamentos) {
+          somaPagamentosUpdate += pag.valor;
+          const plano = planosMapUpdate[pag.codplano_pagamento];
+          if (plano && plano.tem_acrescimo && plano.taxa_acrescimo) {
+            const taxa = Number(plano.taxa_acrescimo);
+            if (taxa > 0) {
+              const valorSemAcrescimo = pag.valor / (1 + (taxa / 100));
+              const acrescimoDestePagamento = pag.valor - valorSemAcrescimo;
+              acrescimoTotalGeralUpdate += acrescimoDestePagamento;
+              
+              pag.acrescimo_percentual = taxa;
+              pag.valor_acrescimo = Number(acrescimoDestePagamento.toFixed(2));
+            }
+          }
+        }
+        somaPagamentosUpdate = Number(somaPagamentosUpdate.toFixed(2));
+        acrescimoTotalGeralUpdate = Number(acrescimoTotalGeralUpdate.toFixed(2));
+        valor_total_venda = Number((valor_total_venda + acrescimoTotalGeralUpdate).toFixed(2));
+
+        if (somaPagamentosUpdate !== valor_total_venda && (status === "FINALIZADO" || status === "FINALIZADA")) {
+          throw new Error(`Soma de pagamentos (R$ ${somaPagamentosUpdate}) diverge do valor da venda (R$ ${valor_total_venda}).`);
+        }
+      }
 
       // Inserir os itens todos
       const todosOsItensParaGravar = [...avulsosProcessados, ...itensDeKits];
@@ -768,6 +844,7 @@ export async function atualizarPedido(req, res) {
                   numpedido: updated.numpedido,
                   valor_total: valorPag,
                   data_emissao: new Date(),
+                  data_vencimento: getVencimentoPadrao(),
                   status: "PENDENTE",
                   observacoes: `Venda ${updated.codigo_venda} (Múltiplos)`
                 }
@@ -806,7 +883,8 @@ export async function atualizarPedido(req, res) {
                 numpedido: updated.numpedido,
                 valor_total: valor_total_venda,
                 data_emissao: new Date(),
-                status: "PENDENTE",
+                  data_vencimento: getVencimentoPadrao(),
+                  status: "PENDENTE",
                 observacoes: `Venda ${updated.codigo_venda}`
               }
             });

@@ -130,7 +130,7 @@ export const statusCaixa = async (req, res) => {
                     acao: 'ATUALIZAR',
                     tabela: 'mscaixa_sessao',
                     registro_id: String(sessao.codsessao),
-                    descricao: `Caixa fechado automaticamente (virada de dia). Sessão ${sessao.codsessao}. Saldo: ${saldoEsperadoDinheiro}`
+                    motivo: `Caixa fechado automaticamente (virada de dia). Sessão ${sessao.codsessao}. Saldo: ${saldoEsperadoDinheiro}`
                 }
             });
 

@@ -144,9 +144,10 @@ export async function registrarEntradaManual(req, res) {
             codproduto: item.codproduto,
             codfilial: filialDestino,
             tipo: "ENTRADA",
-            origem: origem || "COMPRA",
+            origem: origem || "AJUSTE",
             quantidade: item.quantidade,
-            uuid: ajusteUuid
+            uuid: ajusteUuid,
+            created_by: req.usuario ? req.usuario.id : null
           }
         });
 
@@ -278,7 +279,8 @@ export async function registrarSaidaManual(req, res) {
           codfilial: filialId,
           tipo: "SAIDA",
           origem: origem || "AJUSTE",
-          quantidade: Number(quantidade)
+          quantidade: Number(quantidade),
+          created_by: req.usuario ? req.usuario.id : null
         }
       });
 
@@ -646,7 +648,7 @@ export async function transferirEstoque(req, res) {
 export async function listarTodasValidades(req, res) {
   try {
     const { codfilial } = req.query;
-    const where = { quantidade: { gt: 0 }, lote: { not: 'PADRAO' } };
+    const where = { quantidade: { gt: 0 }, validade: { not: null } };
     if (codfilial && codfilial !== "undefined" && !isNaN(Number(codfilial))) {
       where.codfilial = Number(codfilial);
     }
@@ -699,7 +701,7 @@ export async function listarPendenciasRastreabilidade(req, res) {
 
     const lotes = await prisma.msestoque_lote.groupBy({
       by: ['codproduto'],
-      where: { codfilial: Number(codfilial), lote: { not: 'PADRAO' } },
+      where: { codfilial: Number(codfilial), validade: { not: null } },
       _sum: { quantidade: true }
     });
 
@@ -737,7 +739,7 @@ export async function atribuirValidadeManual(req, res) {
       if (!estoque) throw new Error('Estoque nÃ£o encontrado.');
       
       const agregados = await tx.msestoque_lote.aggregate({
-        where: { codproduto: Number(codproduto), codfilial: Number(codfilial) },
+        where: { codproduto: Number(codproduto), codfilial: Number(codfilial), validade: { not: null } },
         _sum: { quantidade: true }
       });
       const pendente = estoque.quantidade - (agregados._sum.quantidade || 0);
@@ -746,7 +748,7 @@ export async function atribuirValidadeManual(req, res) {
       // 2. Criar ou incrementar o lote
       const validadeDate = new Date(validade);
       const loteExistente = await tx.msestoque_lote.findFirst({
-        where: { codproduto: Number(codproduto), codfilial: Number(codfilial), lote: lote || 'MANUAL', validade: validadeDate }
+        where: { codproduto: Number(codproduto), codfilial: Number(codfilial), lote: lote || "MANUAL", validade: validadeDate }
       });
 
       if (loteExistente) {
@@ -759,11 +761,26 @@ export async function atribuirValidadeManual(req, res) {
           data: {
             codproduto: Number(codproduto),
             codfilial: Number(codfilial),
-            lote: lote || 'MANUAL',
+            lote: lote || "MANUAL",
             validade: validadeDate,
             quantidade: Number(quantidade)
           }
         });
+      }
+
+      // Abater dos lotes genéricos (sem validade) para manter a soma correta
+      const lotesGenericos = await tx.msestoque_lote.findMany({
+        where: { codproduto: Number(codproduto), codfilial: Number(codfilial), validade: null, quantidade: { gt: 0 } }
+      });
+      let qtdParaAbater = Number(quantidade);
+      for (const lg of lotesGenericos) {
+        if (qtdParaAbater <= 0) break;
+        const abater = Math.min(lg.quantidade, qtdParaAbater);
+        await tx.msestoque_lote.update({
+          where: { id: lg.id },
+          data: { quantidade: { decrement: abater } }
+        });
+        qtdParaAbater -= abater;
       }
 
       // 3. Registrar auditoria (msmov_estoque)
@@ -827,3 +844,8 @@ export async function descartarLote(req, res) {
     res.status(400).json({ erro: error.message || 'Erro ao descartar lote.' });
   }
 }
+
+
+
+
+

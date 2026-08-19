@@ -406,6 +406,7 @@ model msconfiguracao_empresa {
   notificar_caixa           Boolean @default(false)
 
   modo_cobranca_cartao      String? @default("PERCENTUAL")
+  perguntar_vencimento_crediario Boolean @default(false)
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt

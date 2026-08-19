@@ -121,14 +121,17 @@ export async function listarPromocoes(req, res) {
 export async function criarPromocao(req, res) {
   const { nome, tipo_geral, valor_geral, data_inicio, data_fim, prioridade, itens } = req.body;
 
+  const parseDataInicio = (d) => new Date(d.includes("T") ? d : `${d}T00:00:00.000-03:00`);
+  const parseDataFim = (d) => new Date(d.includes("T") ? d : `${d}T23:59:59.999-03:00`);
+
   try {
     const promocao = await prisma.mspromocao.create({
       data: {
         nome,
         tipo_geral,
         valor_geral,
-        data_inicio: new Date(data_inicio),
-        data_fim: new Date(data_fim),
+        data_inicio: parseDataInicio(data_inicio),
+        data_fim: parseDataFim(data_fim),
         prioridade: prioridade ? Number(prioridade) : 1,
         itens: {
           create: itens.map((item) => ({
@@ -171,6 +174,9 @@ export async function atualizarPromocao(req, res) {
   const { codpromocao } = req.params;
   const { nome, tipo_geral, valor_geral, data_inicio, data_fim, prioridade, itens } = req.body;
 
+  const parseDataInicio = (d) => new Date(d.includes("T") ? d : `${d}T00:00:00.000-03:00`);
+  const parseDataFim = (d) => new Date(d.includes("T") ? d : `${d}T23:59:59.999-03:00`);
+
   try {
     // Primeiro, apaga os itens antigos
     await prisma.mspromocao_item.deleteMany({
@@ -184,8 +190,8 @@ export async function atualizarPromocao(req, res) {
         nome,
         tipo_geral,
         valor_geral,
-        data_inicio: new Date(data_inicio),
-        data_fim: new Date(data_fim),
+        data_inicio: parseDataInicio(data_inicio),
+        data_fim: parseDataFim(data_fim),
         prioridade: prioridade ? Number(prioridade) : 1,
         itens: {
           create: itens.map((item) => ({

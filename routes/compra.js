@@ -1,7 +1,6 @@
 import express from "express"
 import multer from "multer"
-import { getCompras, createCompra, getCompraById, updateCompraStatus } from "../controllers/compra.js"
-import { importarXml, finalizarConferencia } from "../controllers/comprasController.js"
+import { getCompras, createCompra, getCompraById, updateCompraStatus, importarXml, finalizarConferencia } from "../controllers/comprasController.js"
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage() })

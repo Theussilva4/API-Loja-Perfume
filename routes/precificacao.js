@@ -1,25 +1,25 @@
 import { Router } from "express";
 import * as controller from "../controllers/precificacaoController.js";
-import { auth } from "../middlewares/authMiddleware.js";
+import { checkRole } from "../middlewares/rbacMiddleware.js";
 
 const router = Router();
 
 // Configurações
-router.get("/configuracao", auth, controller.getConfig);
-router.put("/configuracao", auth, controller.updateConfig);
+router.get("/configuracao", controller.getConfig);
+router.put("/configuracao", controller.updateConfig);
 
 // Tabela de Preços
-router.get("/tabela", auth, controller.listarTabelaPrecos);
-router.get("/historico/:codproduto", auth, controller.getHistoricoPrecos);
-router.post("/definir/:codproduto", auth, controller.definirPrecoBase);
+router.get("/tabela", controller.listarTabelaPrecos);
+router.get("/historico/:codproduto", controller.getHistoricoPrecos);
+router.post("/definir/:codproduto", controller.definirPrecoBase);
 
 // Motor de Preço (Simulação ao vivo)
-router.get("/simular/:codproduto", auth, controller.simularPreco);
+router.get("/simular/:codproduto", controller.simularPreco);
 
 // Promoções
-router.get("/promocoes", auth, controller.listarPromocoes);
-router.post("/promocoes", auth, controller.criarPromocao);
-router.put("/promocoes/:codpromocao", auth, controller.atualizarPromocao);
-router.delete("/promocoes/:codpromocao", auth, controller.deletarPromocao);
+router.get("/promocoes", controller.listarPromocoes);
+router.post("/promocoes", controller.criarPromocao);
+router.put("/promocoes/:codpromocao", controller.atualizarPromocao);
+router.delete("/promocoes/:codpromocao", controller.deletarPromocao);
 
 export default router;

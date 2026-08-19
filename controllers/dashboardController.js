@@ -332,7 +332,48 @@ export const getDashboardMetrics = async (req, res) => {
     }
 
     // Enviar resposta
+    
+    // ==========================================
+    // 9. VENDAS SEMANA ATUAL VS SEMANA PASSADA
+    // ==========================================
+    const diaSemanaHoje = dataBR.getDay(); // 0 = Domingo, 1 = Segunda
+    const inicioSemanaAtual = new Date(hoje);
+    inicioSemanaAtual.setDate(inicioSemanaAtual.getDate() - diaSemanaHoje);
+
+    const inicioSemanaPassada = new Date(inicioSemanaAtual);
+    inicioSemanaPassada.setDate(inicioSemanaPassada.getDate() - 7);
+
+    const fimSemanaPassada = new Date(inicioSemanaAtual);
+
+    const pedidosSemanaAtual = await prisma.mspedido.findMany({
+      where: { data_pedido: { gte: inicioSemanaAtual, lt: fimHoje }, ...pedidoConditionBase }
+    });
+
+    const pedidosSemanaPassada = await prisma.mspedido.findMany({
+      where: { data_pedido: { gte: inicioSemanaPassada, lt: fimSemanaPassada }, ...pedidoConditionBase }
+    });
+
+    const mapaDias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+    const vendasSemanaAtualPassada = mapaDias.map((dia, index) => {
+      const dataAtualIndex = new Date(inicioSemanaAtual);
+      dataAtualIndex.setDate(dataAtualIndex.getDate() + index);
+      const dataAtualFimIndex = new Date(dataAtualIndex);
+      dataAtualFimIndex.setDate(dataAtualFimIndex.getDate() + 1);
+
+      const vendasAtualDia = pedidosSemanaAtual.filter(p => p.data_pedido >= dataAtualIndex && p.data_pedido < dataAtualFimIndex).reduce((acc, curr) => acc + Number(curr.valor_total), 0);
+
+      const dataPassadaIndex = new Date(inicioSemanaPassada);
+      dataPassadaIndex.setDate(dataPassadaIndex.getDate() + index);
+      const dataPassadaFimIndex = new Date(dataPassadaIndex);
+      dataPassadaFimIndex.setDate(dataPassadaFimIndex.getDate() + 1);
+
+      const vendasPassadaDia = pedidosSemanaPassada.filter(p => p.data_pedido >= dataPassadaIndex && p.data_pedido < dataPassadaFimIndex).reduce((acc, curr) => acc + Number(curr.valor_total), 0);
+
+      return { dia, atual: vendasAtualDia, passada: vendasPassadaDia };
+    });
+
     res.json({
+      vendasSemanaAtualPassada,
       faturamento: {
         hoje: faturamentoHoje,
         mes: Number(pedidosMes._sum.valor_total || 0),

@@ -1,3 +1,4 @@
+import { checkRole } from "../middlewares/rbacMiddleware.js";
 import express from "express";
 import {
   criarPedido,
@@ -16,7 +17,7 @@ router.post("/", criarPedido);
 router.put("/:id", atualizarPedido);
 
 // status
-router.patch("/:id/status", alterarStatus);
+router.patch("/:id/status", checkRole(["ADMIN", "GERENTE"]), alterarStatus);
 
 // itens
 router.post("/:id/itens", adicionarItem);

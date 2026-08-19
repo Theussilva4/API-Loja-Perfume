@@ -26,6 +26,7 @@ import relatoriosRoutes from "./routes/relatorios.js"
 import caixaRoutes from "./routes/caixa.js"
 import contasReceberRoutes from "./routes/contasReceber.js"
 import { sendTelegramAlert } from "./utils/telegram.js"
+import { auth } from "./middlewares/authMiddleware.js"
 
 const app = express()
 
@@ -40,6 +41,54 @@ app.use(cors({
 }))
 
 app.use(express.json())
+
+// Middleware para forçar uppercase em dados de cadastro (POST, PUT, PATCH)
+app.use((req, res, next) => {
+  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+    // Rotas que não devem sofrer alteração de caixa
+    if (req.originalUrl.includes('/api/login')) return next();
+    
+    // Chaves que não devem ser convertidas para maiúsculo
+    const skipKeys = [
+      'email', 'senha', 'password', 'login', 'id', 'uuid', 'token', 
+      'url', 'imagem', 'foto', 'chave_pix', 'codigo', 'cod', 'codproduto',
+      'telefone', 'celular', 'whatsapp', 'cpf', 'cnpj', 'rg', 'cep', 'cor', 'icone'
+    ];
+
+    const uppercaseObj = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+      
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          const keyLower = key.toLowerCase();
+          if (skipKeys.some(skip => keyLower.includes(skip))) {
+            continue;
+          }
+          
+          if (typeof obj[key] === 'string') {
+            obj[key] = obj[key].toUpperCase();
+          } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+            uppercaseObj(obj[key]);
+          }
+        }
+      }
+    };
+
+    if (req.body) {
+      uppercaseObj(req.body);
+    }
+  }
+  next();
+});
+
+// Autenticação Global para todas as rotas da API (exceto públicas)
+app.use("/api", (req, res, next) => {
+  const publicRoutes = ['/api/login', '/api/teste-erro'];
+  if (publicRoutes.some(route => req.originalUrl.includes(route))) {
+    return next();
+  }
+  return auth(req, res, next);
+});
 
 // Middleware para interceptar respostas com erro 500+ e enviar para o Telegram
 app.use((req, res, next) => {
