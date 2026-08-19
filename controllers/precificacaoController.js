@@ -1,4 +1,4 @@
-﻿import * as precificacaoService from "../services/precificacaoService.js";
+import * as precificacaoService from "../services/precificacaoService.js";
 import prisma from "../prismaClient.js";
 
 // --- CONFIGURAÃÃES ---

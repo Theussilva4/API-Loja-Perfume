@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 
 let schema = fs.readFileSync('C:/Users/matheus.miguel/Documents/Node_projetos/Projeto_Perfume/API/prisma/schema.prisma', 'utf-8');
 

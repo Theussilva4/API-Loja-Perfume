@@ -1,4 +1,4 @@
-﻿import prisma from "../prismaClient.js"
+import prisma from "../prismaClient.js"
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from "../utils/cloudinary.js"
 import { logAuditoria, logAlteracoes } from "../services/auditService.js"
 

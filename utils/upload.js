@@ -1,4 +1,4 @@
-﻿import multer from 'multer';
+import multer from 'multer';
 
 // Opcional: Para nÃ£o salvar arquivos no disco temporariamente, vamos usar o storage em memÃ³ria.
 // Assim, o multer disponibiliza req.file.buffer e nÃ³s fazemos o upload direto pro Cloudinary via stream.

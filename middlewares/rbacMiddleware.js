@@ -1,4 +1,4 @@
-﻿export const checkRole = (allowedRoles) => {
+export const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     // req.usuario Ã© populado pelo authMiddleware
     if (!req.usuario || !req.usuario.tipo) {

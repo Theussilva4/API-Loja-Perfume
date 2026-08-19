@@ -1,4 +1,4 @@
-﻿import express from "express"
+import express from "express"
 import { getFornecedores, createFornecedor, updateFornecedor, deleteFornecedor } from "../controllers/fornecedoresController.js"
 
 const router = express.Router()

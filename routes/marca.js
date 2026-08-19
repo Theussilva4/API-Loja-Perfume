@@ -1,4 +1,4 @@
-﻿import { checkRole } from "../middlewares/rbacMiddleware.js";
+import { checkRole } from "../middlewares/rbacMiddleware.js";
 import express from "express"
 import { listarMarca, alterarMarca, criarMarca } from "../controllers/marcaController.js"
 

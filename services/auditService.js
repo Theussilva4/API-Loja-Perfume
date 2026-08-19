@@ -1,4 +1,4 @@
-﻿import prisma from "../prismaClient.js";
+import prisma from "../prismaClient.js";
 
 /**
  * Registra uma aÃ§Ã£o na tabela ms_log_auditoria

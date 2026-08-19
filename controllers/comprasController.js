@@ -1,4 +1,4 @@
-﻿import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { creditarEstoque, debitarEstoque } from "../services/estoqueService.js";
 

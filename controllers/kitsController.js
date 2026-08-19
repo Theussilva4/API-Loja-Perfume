@@ -1,4 +1,4 @@
-﻿import prisma from "../prismaClient.js";
+import prisma from "../prismaClient.js";
 
 // Listar kits com seus itens
 export async function listarKits(req, res) {

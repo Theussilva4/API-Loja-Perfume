@@ -1,4 +1,4 @@
-﻿import prisma from "../prismaClient.js"
+import prisma from "../prismaClient.js"
 
 export async function listarVendedor(req, res) {
   try {

@@ -1,4 +1,4 @@
-﻿import express from "express"
+import express from "express"
 import { listarcategorias, alterarcategorias, alterarStatuscategoria, criarcategorias } from "../controllers/categoriasController.js"
 
 const router = express.Router()

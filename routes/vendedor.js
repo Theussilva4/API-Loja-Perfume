@@ -1,4 +1,4 @@
-﻿import express from "express"
+import express from "express"
 import { listarVendedor,criarVendedor,alterarStatusVendedor, alterarVendedor } from "../controllers/vendedorController.js"
 
 

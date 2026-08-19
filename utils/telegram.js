@@ -1,4 +1,4 @@
-﻿// native fetch is available
+// native fetch is available
 
 /**
  * Envia uma mensagem de texto para um chat no Telegram.

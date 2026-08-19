@@ -1,4 +1,4 @@
-﻿/**
+/**
  * estoqueService.js
  * Centraliza as regras de negÃ³cio de movimentaÃ§Ã£o de estoque (FEFO, crÃ©dito, dÃ©bito, estorno).
  * Trabalha sempre recebendo a transaÃ§Ã£o do Prisma (tx) para garantir atomicidade.

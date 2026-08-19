@@ -1,4 +1,4 @@
-﻿import prisma from "../prismaClient.js";
+import prisma from "../prismaClient.js";
 
 /**
  * Busca as configuraÃ§Ãµes da empresa ou cria com os padrÃµes se nÃ£o existirem

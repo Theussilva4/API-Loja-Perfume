@@ -1,4 +1,4 @@
-﻿async function testUpload() {
+async function testUpload() {
   const form = new FormData();
   form.append('descricao', 'TESTE MULTIPART');
   form.append('codcategoria', '1');

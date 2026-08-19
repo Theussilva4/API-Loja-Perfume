@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import { listarCaixas, criarCaixa, editarCaixa, statusCaixa, abrirCaixa, fecharCaixa, movimentoManual, extratoSessao, listarSessoesFechadas, relatorioFechamento } from '../controllers/caixaController.js';
 import { checkRole } from '../middlewares/rbacMiddleware.js';
 

@@ -1,4 +1,4 @@
-﻿import express from "express";
+import express from "express";
 import { listarPlanosPagamento, criarPlanoPagamento, atualizarPlanoPagamento, alterarStatusPlano } from "../controllers/planoPagamentoController.js";
 
 const router = express.Router();

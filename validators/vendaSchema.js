@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 
 const itemVendaSchema = z.object({
   produtoId: z.number({ required_error: "produtoId Ã© obrigatÃ³rio" }).int().positive("produtoId deve ser positivo"),

@@ -1,4 +1,4 @@
-﻿import prisma from "../prismaClient.js";
+import prisma from "../prismaClient.js";
 import bcrypt from "bcryptjs";
 
 export async function listar() {

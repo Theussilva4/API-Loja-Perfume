@@ -1,4 +1,4 @@
-﻿import express from "express"
+import express from "express"
 import multer from "multer"
 import { getCompras, createCompra, getCompraById, updateCompraStatus, importarXml, finalizarConferencia } from "../controllers/comprasController.js"
 

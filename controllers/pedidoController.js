@@ -1,4 +1,4 @@
-﻿import prisma from "../prismaClient.js"
+import prisma from "../prismaClient.js"
 
 // FunÃ§Ã£o auxiliar para gerar codigo da venda
 const getVencimentoPadrao = () => {

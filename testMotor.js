@@ -1,4 +1,4 @@
-﻿import { listarTabelaPrecos } from './controllers/precificacaoController.js';
+import { listarTabelaPrecos } from './controllers/precificacaoController.js';
 import express from 'express';
 
 const req = {};
