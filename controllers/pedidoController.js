@@ -281,13 +281,19 @@ export async function criarPedido(req, res) {
         for (const pag of pagamentos) {
           somaPagamentos += pag.valor;
           const plano = planosMap[pag.codplano_pagamento];
-          if (plano && plano.tem_acrescimo && plano.taxa_acrescimo) {
-            const taxa = Number(plano.taxa_acrescimo);
+          if (plano && plano.tem_acrescimo) {
+            let taxa = Number(plano.taxa_acrescimo || 0);
+            if (plano.regras_parcelamento) {
+              try {
+                const regras = JSON.parse(plano.regras_parcelamento);
+                const regra = regras.find(r => Number(r.parcelas) === Number(pag.parcelas || 1));
+                if (regra) taxa = Number(regra.acrescimo_percentual || 0);
+              } catch(e) {}
+            }
             if (taxa > 0) {
               const valorSemAcrescimo = pag.valor / (1 + (taxa / 100));
               const acrescimoDestePagamento = pag.valor - valorSemAcrescimo;
               acrescimoTotalGeral += acrescimoDestePagamento;
-              
               pag.acrescimo_percentual = taxa;
               pag.valor_acrescimo = Number(acrescimoDestePagamento.toFixed(2));
             }
@@ -297,7 +303,7 @@ export async function criarPedido(req, res) {
         acrescimoTotalGeral = Number(acrescimoTotalGeral.toFixed(2));
         valor_total_venda = Number((valor_total_venda + acrescimoTotalGeral).toFixed(2));
 
-        if (somaPagamentos !== valor_total_venda && (finalStatus === "FINALIZADO" || finalStatus === "FINALIZADA")) {
+        if (Math.abs(somaPagamentos - valor_total_venda) > 0.05 && (finalStatus === "FINALIZADO" || finalStatus === "FINALIZADA")) {
           throw new Error(`Soma de pagamentos (R$ ${somaPagamentos}) diverge do valor da venda (R$ ${valor_total_venda}).`);
         }
       }
@@ -761,13 +767,19 @@ export async function atualizarPedido(req, res) {
         for (const pag of pagamentos) {
           somaPagamentosUpdate += pag.valor;
           const plano = planosMapUpdate[pag.codplano_pagamento];
-          if (plano && plano.tem_acrescimo && plano.taxa_acrescimo) {
-            const taxa = Number(plano.taxa_acrescimo);
+          if (plano && plano.tem_acrescimo) {
+            let taxa = Number(plano.taxa_acrescimo || 0);
+            if (plano.regras_parcelamento) {
+              try {
+                const regras = JSON.parse(plano.regras_parcelamento);
+                const regra = regras.find(r => Number(r.parcelas) === Number(pag.parcelas || 1));
+                if (regra) taxa = Number(regra.acrescimo_percentual || 0);
+              } catch(e) {}
+            }
             if (taxa > 0) {
               const valorSemAcrescimo = pag.valor / (1 + (taxa / 100));
               const acrescimoDestePagamento = pag.valor - valorSemAcrescimo;
               acrescimoTotalGeralUpdate += acrescimoDestePagamento;
-              
               pag.acrescimo_percentual = taxa;
               pag.valor_acrescimo = Number(acrescimoDestePagamento.toFixed(2));
             }
@@ -777,7 +789,7 @@ export async function atualizarPedido(req, res) {
         acrescimoTotalGeralUpdate = Number(acrescimoTotalGeralUpdate.toFixed(2));
         valor_total_venda = Number((valor_total_venda + acrescimoTotalGeralUpdate).toFixed(2));
 
-        if (somaPagamentosUpdate !== valor_total_venda && (status === "FINALIZADO" || status === "FINALIZADA")) {
+        if (Math.abs(somaPagamentosUpdate - valor_total_venda) > 0.05 && (status === "FINALIZADO" || status === "FINALIZADA")) {
           throw new Error(`Soma de pagamentos (R$ ${somaPagamentosUpdate}) diverge do valor da venda (R$ ${valor_total_venda}).`);
         }
       }
