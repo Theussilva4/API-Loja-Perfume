@@ -190,8 +190,7 @@ export const creditarEstoque = async (tx, codproduto, codfilial, quantidade, ori
         codfilial,
         lote: loteValue,
         validade: validadeValue,
-        quantidade,
-        custo_unitario
+        quantidade
       }
     });
   }
