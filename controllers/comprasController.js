@@ -261,9 +261,7 @@ export const finalizarConferencia = async (req, res) => {
               codfilial: filialId,
               lote: item.lote,
               validade: new Date(item.validade),
-              quantidade: item.quantidade,
-              quantidade_restante: item.quantidade,
-              custo_unitario: item.custo_unitario || 0,
+              quantidade: item.quantidade
             }
           });
         }
