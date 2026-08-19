@@ -1,17 +1,17 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 const itemVendaSchema = z.object({
-  produtoId: z.number({ required_error: "produtoId é obrigatório" }).int().positive("produtoId deve ser positivo"),
-  quantidade: z.number({ required_error: "quantidade é obrigatória" }).int().positive("quantidade deve ser maior que zero"),
-  descontoPercentual: z.number().min(0, "descontoPercentual não pode ser negativo").max(100, "descontoPercentual não pode ser maior que 100").optional(),
-  descontoReais: z.number().min(0, "descontoReais não pode ser negativo").optional(),
+  produtoId: z.number({ required_error: "produtoId Ã© obrigatÃ³rio" }).int().positive("produtoId deve ser positivo"),
+  quantidade: z.number({ required_error: "quantidade Ã© obrigatÃ³ria" }).int().positive("quantidade deve ser maior que zero"),
+  descontoPercentual: z.number().min(0, "descontoPercentual nÃ£o pode ser negativo").max(100, "descontoPercentual nÃ£o pode ser maior que 100").optional(),
+  descontoReais: z.number().min(0, "descontoReais nÃ£o pode ser negativo").optional(),
 }).refine(data => !(data.descontoPercentual !== undefined && data.descontoReais !== undefined), {
-  message: "Forneça descontoPercentual OU descontoReais, nunca os dois juntos."
+  message: "ForneÃ§a descontoPercentual OU descontoReais, nunca os dois juntos."
 });
 
 const kitVendaSchema = z.object({
-  kitId: z.number({ required_error: "kitId é obrigatório" }).int().positive(),
-  quantidade: z.number({ required_error: "quantidade é obrigatória" }).int().positive("quantidade do kit deve ser maior que zero"),
+  kitId: z.number({ required_error: "kitId Ã© obrigatÃ³rio" }).int().positive(),
+  quantidade: z.number({ required_error: "quantidade Ã© obrigatÃ³ria" }).int().positive("quantidade do kit deve ser maior que zero"),
 });
 
 const pagamentoSchema = z.object({
@@ -27,12 +27,12 @@ const pagamentoSchema = z.object({
 });
 
 export const vendaSchema = z.object({
-  codcliente: z.number({ required_error: "codcliente é obrigatório" }).int().positive(),
+  codcliente: z.number({ required_error: "codcliente Ã© obrigatÃ³rio" }).int().positive(),
   codusur_criou: z.number().int().positive().optional().nullable(),
   codvendedor: z.number().int().positive().optional().nullable(),
   codfilial: z.number().int().positive().optional().nullable(),
   
-  valor_frete: z.number().min(0, "Frete não pode ser negativo").optional().nullable(),
+  valor_frete: z.number().min(0, "Frete nÃ£o pode ser negativo").optional().nullable(),
   observacoes: z.string().optional().nullable(),
   status: z.enum(["EM_ABERTO", "FINALIZADO", "EM_DIGITACAO", "CANCELADO", "FINALIZADA"]).optional(),
   

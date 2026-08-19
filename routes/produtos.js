@@ -1,4 +1,4 @@
-import express from "express"
+﻿import express from "express"
 import { listarProdutos,alterarProdutos,alterarStatusProduto,criarProdutos } from "../controllers/produtosController.js"
 import upload from "../utils/upload.js"
 import { checkRole } from "../middlewares/rbacMiddleware.js";

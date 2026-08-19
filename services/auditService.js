@@ -1,10 +1,10 @@
-import prisma from "../prismaClient.js";
+﻿import prisma from "../prismaClient.js";
 
 /**
- * Registra uma ação na tabela ms_log_auditoria
+ * Registra uma aÃ§Ã£o na tabela ms_log_auditoria
  * @param {Object} params
- * @param {number} params.codusuario - ID do usuário que fez a ação
- * @param {string} params.nome_usuario - Nome do usuário (opcional)
+ * @param {number} params.codusuario - ID do usuÃ¡rio que fez a aÃ§Ã£o
+ * @param {string} params.nome_usuario - Nome do usuÃ¡rio (opcional)
  * @param {string} params.acao - "CRIAR", "ALTERAR", "EXCLUIR", "CANCELAR"
  * @param {string} params.tabela - Nome da tabela, ex: "msproduto"
  * @param {string|number} params.registro_id - ID do registro
@@ -44,7 +44,7 @@ export async function logAuditoria({
 }
 
 /**
- * Compara dois objetos e registra as diferenças no log
+ * Compara dois objetos e registra as diferenÃ§as no log
  */
 export async function logAlteracoes(tabela, registro_id, objetoAntigo, objetoNovo, codusuario = null, nome_usuario = null) {
   if (!objetoAntigo || !objetoNovo) return;
@@ -58,7 +58,7 @@ export async function logAlteracoes(tabela, registro_id, objetoAntigo, objetoNov
     // Evitar loop infinito e ignorar campos de controle
     if (campo === "updated_at" || campo === "atualizado_em") continue;
 
-    // Se os valores são diferentes, registra o log
+    // Se os valores sÃ£o diferentes, registra o log
     if (String(valorAntigo) !== String(valorNovo)) {
       await logAuditoria({
         codusuario,

@@ -1,13 +1,13 @@
-export const checkRole = (allowedRoles) => {
+﻿export const checkRole = (allowedRoles) => {
   return (req, res, next) => {
-    // req.usuario é populado pelo authMiddleware
+    // req.usuario Ã© populado pelo authMiddleware
     if (!req.usuario || !req.usuario.tipo) {
-      return res.status(403).json({ erro: "Acesso Negado: Perfil não identificado." });
+      return res.status(403).json({ erro: "Acesso Negado: Perfil nÃ£o identificado." });
     }
     
-    // Verifica se o papel do usuário logado está na lista de papéis permitidos para essa rota
+    // Verifica se o papel do usuÃ¡rio logado estÃ¡ na lista de papÃ©is permitidos para essa rota
     if (!allowedRoles.includes(req.usuario.tipo)) {
-      return res.status(403).json({ erro: "Acesso Negado: Permissão insuficiente para esta ação." });
+      return res.status(403).json({ erro: "Acesso Negado: PermissÃ£o insuficiente para esta aÃ§Ã£o." });
     }
     
     next();

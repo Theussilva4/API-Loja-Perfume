@@ -1,10 +1,10 @@
-const { PrismaClient } = require('@prisma/client');
+﻿const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function fixBarcodes() {
-    console.log('Resolvendo códigos de barras duplicados...');
+    console.log('Resolvendo cÃ³digos de barras duplicados...');
     
-    // Busca todos os produtos com código de barras preenchido
+    // Busca todos os produtos com cÃ³digo de barras preenchido
     const produtos = await prisma.msproduto.findMany({
         where: { codigo_barras: { not: null } },
         select: { codproduto: true, codigo_barras: true }
@@ -22,7 +22,7 @@ async function fixBarcodes() {
         }
     }
     
-    console.log(`Encontrados ${paraAtualizar.length} produtos com código de barras duplicado.`);
+    console.log(`Encontrados ${paraAtualizar.length} produtos com cÃ³digo de barras duplicado.`);
     
     for (const cod of paraAtualizar) {
         await prisma.$executeRawUnsafe(`UPDATE msproduto SET codigo_barras = NULL WHERE codproduto = ${cod}`);

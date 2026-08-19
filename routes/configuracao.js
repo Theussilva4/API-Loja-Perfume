@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import { getConfiguracoes, updateConfiguracoes } from "../controllers/configuracaoController.js";
 import { checkRole } from "../middlewares/rbacMiddleware.js";
 

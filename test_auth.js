@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+﻿import jwt from 'jsonwebtoken';
 
 async function run() {
   const token = jwt.sign({ codusur: 1, nome: "Admin" }, "SEGREDO");

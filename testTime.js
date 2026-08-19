@@ -1,4 +1,4 @@
-function getHojeBRT() {
+﻿function getHojeBRT() {
   const agora = new Date();
   // String da data local no Brasil (m/d/yyyy)
   const brtString = agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });

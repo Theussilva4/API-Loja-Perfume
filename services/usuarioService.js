@@ -1,4 +1,4 @@
-import prisma from "../prismaClient.js";
+﻿import prisma from "../prismaClient.js";
 import bcrypt from "bcryptjs";
 
 export async function listar() {
@@ -32,11 +32,11 @@ export async function criar(dados) {
   } = dados;
 
   if (!nome || !login || !senha) {
-    throw new Error("Nome, login e senha são obrigatórios");
+    throw new Error("Nome, login e senha sÃ£o obrigatÃ³rios");
   }
 
   if (senha.length < 6) {
-    throw new Error("Senha deve ter no mínimo 6 caracteres");
+    throw new Error("Senha deve ter no mÃ­nimo 6 caracteres");
   }
 
   const usuarioExistente = await prisma.msusuario.findUnique({
@@ -44,7 +44,7 @@ export async function criar(dados) {
   });
 
   if (usuarioExistente) {
-    throw new Error("Login já existe");
+    throw new Error("Login jÃ¡ existe");
   }
 
   const senhaHash = await bcrypt.hash(senha, 10);
@@ -73,7 +73,7 @@ export async function criar(dados) {
 
 export async function alterar(codusur, dados) {
   if (!codusur) {
-    throw new Error("Código do usuário obrigatório");
+    throw new Error("CÃ³digo do usuÃ¡rio obrigatÃ³rio");
   }
 
   if (dados.senha) {

@@ -1,4 +1,4 @@
-import express from "express"
+﻿import express from "express"
 import { listarEstoque, alterarEstoque, listarMovimentacoesSaida, listarMovimentacoesEntrada, registrarSaidaManual, cancelarSaidaManual, extratoProduto, registrarEntradaManual, transferirEstoque, listarLotes, listarTodasValidades, listarPendenciasRastreabilidade, atribuirValidadeManual, descartarLote } from "../controllers/estoqueController.js"
 import { checkRole } from "../middlewares/rbacMiddleware.js"
 

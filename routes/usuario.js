@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import * as controller from "../controllers/usuarioController.js";
 import { checkRole } from "../middlewares/rbacMiddleware.js";
 

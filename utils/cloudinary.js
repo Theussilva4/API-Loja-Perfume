@@ -1,4 +1,4 @@
-import { v2 as cloudinary } from 'cloudinary';
+﻿import { v2 as cloudinary } from 'cloudinary';
 
 export const uploadImageToCloudinary = (buffer, folder = 'erp/produtos') => {
   return new Promise((resolve, reject) => {

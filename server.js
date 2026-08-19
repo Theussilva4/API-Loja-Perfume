@@ -1,4 +1,4 @@
-import "dotenv/config"
+﻿import "dotenv/config"
 import express from "express"
 import cors from "cors"
 import path from "path"
@@ -42,13 +42,13 @@ app.use(cors({
 
 app.use(express.json())
 
-// Middleware para forçar uppercase em dados de cadastro (POST, PUT, PATCH)
+// Middleware para forÃ§ar uppercase em dados de cadastro (POST, PUT, PATCH)
 app.use((req, res, next) => {
   if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-    // Rotas que não devem sofrer alteração de caixa
+    // Rotas que nÃ£o devem sofrer alteraÃ§Ã£o de caixa
     if (req.originalUrl.includes('/api/login')) return next();
     
-    // Chaves que não devem ser convertidas para maiúsculo
+    // Chaves que nÃ£o devem ser convertidas para maiÃºsculo
     const skipKeys = [
       'email', 'senha', 'password', 'login', 'id', 'uuid', 'token', 
       'url', 'imagem', 'foto', 'chave_pix', 'codigo', 'cod', 'codproduto',
@@ -81,7 +81,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Autenticação Global para todas as rotas da API (exceto públicas)
+// AutenticaÃ§Ã£o Global para todas as rotas da API (exceto pÃºblicas)
 app.use("/api", (req, res, next) => {
   const publicRoutes = ['/api/login', '/api/teste-erro'];
   if (publicRoutes.some(route => req.originalUrl.includes(route))) {
@@ -103,7 +103,7 @@ app.use((req, res, next) => {
         errorMessage = errorMessage.substring(0, 2000) + '... [TRUNCATED]';
       }
 
-      const mensagem = `🚨 <b>ERRO NA API</b> 🚨\n\n` +
+      const mensagem = `ð¨ <b>ERRO NA API</b> ð¨\n\n` +
         `<b>Rota:</b> ${req.method} ${req.originalUrl}\n` +
         `<b>Status:</b> ${res.statusCode}\n\n` +
         `<b>Detalhes:</b>\n<pre>${errorMessage}</pre>`;
@@ -150,8 +150,8 @@ app.use("/api/contas-receber", contasReceberRoutes)
 // Rota de teste para validar o Telegram
 app.get("/api/teste-erro", (req, res) => {
   res.status(500).json({
-    erro: "Este é um erro de teste disparado propositalmente para validar a integração com o Telegram.",
-    details: "Se você recebeu isso no seu Telegram, a integração está funcionando perfeitamente 🚀"
+    erro: "Este Ã© um erro de teste disparado propositalmente para validar a integraÃ§Ã£o com o Telegram.",
+    details: "Se vocÃª recebeu isso no seu Telegram, a integraÃ§Ã£o estÃ¡ funcionando perfeitamente ð"
   });
 });
 

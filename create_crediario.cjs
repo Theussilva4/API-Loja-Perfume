@@ -1,9 +1,9 @@
-const { PrismaClient } = require('@prisma/client');
+﻿const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 async function run() {
   const plan = await prisma.mSPLANOPAGAMENTO.create({
     data: {
-      DESCRICAO: 'Crediário',
+      DESCRICAO: 'CrediÃ¡rio',
       tipo_pagamento: 'CREDIARIO',
       ATIVO: 'S',
       tem_acrescimo: false,

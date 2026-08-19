@@ -1,9 +1,9 @@
-// native fetch is available
+﻿// native fetch is available
 
 /**
  * Envia uma mensagem de texto para um chat no Telegram.
  * 
- * Requer as variáveis de ambiente:
+ * Requer as variÃ¡veis de ambiente:
  * - TELEGRAM_BOT_TOKEN
  * - TELEGRAM_CHAT_ID
  * 
@@ -14,7 +14,7 @@ export async function sendTelegramAlert(message) {
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
   if (!token || !chatId) {
-    console.warn('TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID ausentes. Alerta não enviado.');
+    console.warn('TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID ausentes. Alerta nÃ£o enviado.');
     return;
   }
 

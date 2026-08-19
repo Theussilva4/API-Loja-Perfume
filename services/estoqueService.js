@@ -1,23 +1,23 @@
-/**
+﻿/**
  * estoqueService.js
- * Centraliza as regras de negócio de movimentação de estoque (FEFO, crédito, débito, estorno).
- * Trabalha sempre recebendo a transação do Prisma (tx) para garantir atomicidade.
+ * Centraliza as regras de negÃ³cio de movimentaÃ§Ã£o de estoque (FEFO, crÃ©dito, dÃ©bito, estorno).
+ * Trabalha sempre recebendo a transaÃ§Ã£o do Prisma (tx) para garantir atomicidade.
  */
 
 /**
  * Debita o estoque seguindo a regra FEFO (First Expire, First Out).
- * Consome os lotes que estão mais próximos do vencimento primeiro.
+ * Consome os lotes que estÃ£o mais prÃ³ximos do vencimento primeiro.
  * @param {Object} tx - Prisma Transaction Client
  * @param {Number} codproduto - ID do Produto
  * @param {Number} codfilial - ID da Filial
  * @param {Number} quantidadeDesejada - Quantidade a ser baixada
- * @param {String} origem - Origem da movimentação (ex: "VENDA", "TRANSFERENCIA")
+ * @param {String} origem - Origem da movimentaÃ§Ã£o (ex: "VENDA", "TRANSFERENCIA")
  * @param {Number|String} origem_id - ID da origem (ex: numpedido)
  */
 export const debitarEstoqueFefo = async (tx, codproduto, codfilial, quantidadeDesejada, origem, origem_id) => {
   let qtdRestante = quantidadeDesejada;
 
-  // Busca lotes disponíveis ordenados por validade
+  // Busca lotes disponÃ­veis ordenados por validade
   const lotesComValidade = await tx.msestoque_lote.findMany({
     where: { codproduto, codfilial, quantidade: { gt: 0 }, validade: { not: null } },
     orderBy: { validade: 'asc' }
@@ -86,16 +86,16 @@ export const debitarEstoqueFefo = async (tx, codproduto, codfilial, quantidadeDe
 
 
 /**
- * Estorna uma baixa feita por FEFO (recoloca as quantidades nos lotes de onde saíram).
+ * Estorna uma baixa feita por FEFO (recoloca as quantidades nos lotes de onde saÃ­ram).
  * @param {Object} tx - Prisma Transaction Client
- * @param {Number|String} origem_id - ID da movimentação original (ex: numpedido)
+ * @param {Number|String} origem_id - ID da movimentaÃ§Ã£o original (ex: numpedido)
  * @param {Array} itens - Lista de itens para criar msmov_estoque de entrada (opcional)
  * @param {Number} codfilial - Filial de retorno
  * @param {String} motivoMovimentacao - Opcional para msmov_estoque
  */
 export const estornarEstoqueFefo = async (tx, origem_id, itens, codfilial = 1, motivoMovimentacao = "CANCELAMENTO_VENDA") => {
   const saidas = await tx.mssaida_lote.findMany({
-    where: { origem_id: origem_id } // Pode filtrar por tipo_saida se necessário, mas origem_id costuma ser único pro fluxo
+    where: { origem_id: origem_id } // Pode filtrar por tipo_saida se necessÃ¡rio, mas origem_id costuma ser Ãºnico pro fluxo
   });
 
   for (const saida of saidas) {
@@ -142,22 +142,22 @@ export const estornarEstoqueFefo = async (tx, origem_id, itens, codfilial = 1, m
 
 /**
  * Credita o estoque de forma simplificada (cria/atualiza lote e msestoque global).
- * Muito utilizado em compras e conferências.
+ * Muito utilizado em compras e conferÃªncias.
  * @param {Object} tx - Prisma Transaction Client
  * @param {Number} codproduto - ID do Produto
  * @param {Number} codfilial - ID da Filial
  * @param {Number} quantidade - Quantidade a ser creditada
- * @param {String} origem - Origem da movimentação (ex: "COMPRA")
+ * @param {String} origem - Origem da movimentaÃ§Ã£o (ex: "COMPRA")
  * @param {Number|String} origem_id - ID do documento de origem
  * @param {String} lote - Lote do produto
  * @param {Date} validade - Data de validade
- * @param {Number} custo_unitario - Custo unitário do lote (opcional)
+ * @param {Number} custo_unitario - Custo unitÃ¡rio do lote (opcional)
  */
 export const creditarEstoque = async (tx, codproduto, codfilial, quantidade, origem, origem_id, lote = null, validade = null, custo_unitario = 0) => {
   const loteValue = lote ? String(lote) : "PADRAO";
   const validadeValue = validade ? new Date(validade) : null;
 
-  // 1. Grava histórico
+  // 1. Grava histÃ³rico
   await tx.msmov_estoque.create({
     data: {
       codproduto,
@@ -218,7 +218,7 @@ export const creditarEstoque = async (tx, codproduto, codfilial, quantidade, ori
 export const debitarEstoque = async (tx, codproduto, codfilial, quantidade, origem, origem_id, lote = null) => {
   const loteValue = lote ? String(lote) : "PADRAO";
 
-  // 1. Grava hist�rico
+  // 1. Grava histórico
   await tx.msmov_estoque.create({
     data: {
       codproduto,

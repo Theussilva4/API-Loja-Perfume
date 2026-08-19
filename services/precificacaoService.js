@@ -1,7 +1,7 @@
-import prisma from "../prismaClient.js";
+﻿import prisma from "../prismaClient.js";
 
 /**
- * Busca as configurações da empresa ou cria com os padrões se não existirem
+ * Busca as configuraÃ§Ãµes da empresa ou cria com os padrÃµes se nÃ£o existirem
  */
 export async function getConfiguracao() {
   let config = await prisma.msconfiguracao_empresa.findFirst();
@@ -20,7 +20,7 @@ export async function getConfiguracao() {
 }
 
 /**
- * Atualiza as configurações da empresa
+ * Atualiza as configuraÃ§Ãµes da empresa
  */
 export async function updateConfiguracao(dados) {
   const config = await getConfiguracao();
@@ -37,13 +37,13 @@ export async function updateConfiguracao(dados) {
 }
 
 /**
- * Motor de Precificação Principal
- * Retorna o preço de venda e eventuais promoções aplicadas a um produto.
+ * Motor de PrecificaÃ§Ã£o Principal
+ * Retorna o preÃ§o de venda e eventuais promoÃ§Ãµes aplicadas a um produto.
  */
 export async function calculatePrice(codproduto) {
   const hoje = new Date();
   
-  // 1. Buscar a tabela de preço vigente
+  // 1. Buscar a tabela de preÃ§o vigente
   const tabelaPreco = await prisma.mstabela_preco.findFirst({
     where: {
       codproduto: Number(codproduto),
@@ -76,8 +76,8 @@ export async function calculatePrice(codproduto) {
   let promocaoAplicada = null;
   let descontoReais = 0;
 
-  // 2. Buscar promoções vigentes que contêm esse produto
-  // Precisamos das que estão dentro da data (hoje)
+  // 2. Buscar promoÃ§Ãµes vigentes que contÃªm esse produto
+  // Precisamos das que estÃ£o dentro da data (hoje)
   const promocoes = await prisma.mspromocao.findMany({
     where: {
       ativo: "S",
@@ -100,13 +100,13 @@ export async function calculatePrice(codproduto) {
   });
 
   if (promocoes.length > 0) {
-    // Vence a de maior prioridade (já garantido pelo orderBy)
-    // Se houvesse empate, poderíamos avaliar qual dá o maior desconto. 
+    // Vence a de maior prioridade (jÃ¡ garantido pelo orderBy)
+    // Se houvesse empate, poderÃ­amos avaliar qual dÃ¡ o maior desconto. 
     // Para manter simples, pegamos o primeiro da lista ordenada.
     const promoVencedora = promocoes[0];
     const itemPromo = promoVencedora.itens[0];
 
-    // Verifica se há regra específica para este item
+    // Verifica se hÃ¡ regra especÃ­fica para este item
     const hasRegraItem = !!itemPromo.tipo_opcional && itemPromo.valor_opcional !== null && itemPromo.valor_opcional !== undefined;
     const tipo = hasRegraItem ? itemPromo.tipo_opcional : promoVencedora.tipo_geral;
     const valor = Number(hasRegraItem ? itemPromo.valor_opcional : promoVencedora.valor_geral);
@@ -124,7 +124,7 @@ export async function calculatePrice(codproduto) {
       descontoReais = precoBase - precoFinal;
     }
     
-    // Impede preço negativo
+    // Impede preÃ§o negativo
     if (precoFinal < 0) precoFinal = 0;
   }
 
@@ -148,11 +148,11 @@ export async function calculatePrice(codproduto) {
 }
 
 /**
- * Cria ou Atualiza a Tabela de Preço do Produto
- * Garante que o histórico seja mantido.
+ * Cria ou Atualiza a Tabela de PreÃ§o do Produto
+ * Garante que o histÃ³rico seja mantido.
  */
 export async function setPrecoBase(codproduto, preco_custo, preco_venda, codusur, desconto_maximo = 0, preco_cartao = 0) {
-  // Encontra a vigência atual e encerra
+  // Encontra a vigÃªncia atual e encerra
   const atual = await prisma.mstabela_preco.findFirst({
     where: {
       codproduto: Number(codproduto),
@@ -162,7 +162,7 @@ export async function setPrecoBase(codproduto, preco_custo, preco_venda, codusur
   });
 
   if (atual) {
-    // Se tudo for idêntico, não faz nada
+    // Se tudo for idÃªntico, nÃ£o faz nada
     if (
       Number(atual.preco_custo) === Number(preco_custo) && 
       Number(atual.preco_venda) === Number(preco_venda) &&
@@ -177,7 +177,7 @@ export async function setPrecoBase(codproduto, preco_custo, preco_venda, codusur
     });
   }
 
-  // Cria o novo preço
+  // Cria o novo preÃ§o
   return await prisma.mstabela_preco.create({
     data: {
       codproduto: Number(codproduto),

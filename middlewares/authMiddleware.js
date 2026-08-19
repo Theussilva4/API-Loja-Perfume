@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+﻿import jwt from "jsonwebtoken";
 
 export function auth(req, res, next) {
   let token = req.headers.authorization;
@@ -16,6 +16,6 @@ export function auth(req, res, next) {
     req.usuario = decoded;
     next();
   } catch {
-    return res.status(401).json({ erro: "Token inválido" });
+    return res.status(401).json({ erro: "Token invÃ¡lido" });
   }
 }
