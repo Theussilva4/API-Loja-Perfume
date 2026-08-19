@@ -202,6 +202,8 @@ export async function criarPedido(req, res) {
     const filial = codfilial ? Number(codfilial) : 1;
 
     const result = await prisma.$transaction(async (tx) => {
+      const config = await tx.msconfiguracao_empresa.findFirst();
+      const modoCobrancaCartao = config?.modo_cobranca_cartao || 'PERCENTUAL';
       let sessaoCaixa = null;
       if (finalStatus === "FINALIZADO") {
         sessaoCaixa = await tx.mscaixa_sessao.findFirst({
@@ -282,20 +284,24 @@ export async function criarPedido(req, res) {
           somaPagamentos += pag.valor;
           const plano = planosMap[pag.codplano_pagamento];
           if (plano && plano.tem_acrescimo) {
-            let taxa = Number(plano.taxa_acrescimo || 0);
-            if (plano.regras_parcelamento) {
-              try {
-                const regras = JSON.parse(plano.regras_parcelamento);
-                const regra = regras.find(r => Number(r.parcelas) === Number(pag.parcelas || 1));
-                if (regra) taxa = Number(regra.acrescimo_percentual || 0);
-              } catch(e) {}
-            }
-            if (taxa > 0) {
-              const valorSemAcrescimo = pag.valor / (1 + (taxa / 100));
-              const acrescimoDestePagamento = pag.valor - valorSemAcrescimo;
-              acrescimoTotalGeral += acrescimoDestePagamento;
-              pag.acrescimo_percentual = taxa;
-              pag.valor_acrescimo = Number(acrescimoDestePagamento.toFixed(2));
+            if (modoCobrancaCartao === 'PERCENTUAL') {
+              let taxa = Number(plano.taxa_acrescimo || 0);
+              if (plano.regras_parcelamento) {
+                try {
+                  const regras = JSON.parse(plano.regras_parcelamento);
+                  const regra = regras.find(r => Number(r.parcelas) === Number(pag.parcelas || 1));
+                  if (regra) taxa = Number(regra.acrescimo_percentual || 0);
+                } catch(e) {}
+              }
+              if (taxa > 0) {
+                const valorSemAcrescimo = pag.valor / (1 + (taxa / 100));
+                const acrescimoDestePagamento = pag.valor - valorSemAcrescimo;
+                acrescimoTotalGeral += acrescimoDestePagamento;
+                pag.acrescimo_percentual = taxa;
+                pag.valor_acrescimo = Number(acrescimoDestePagamento.toFixed(2));
+              }
+            } else {
+              pag.valor_acrescimo = Number((pag.snapshot_acrescimo_aplicado || 0).toFixed(2));
             }
           }
         }
@@ -768,20 +774,24 @@ export async function atualizarPedido(req, res) {
           somaPagamentosUpdate += pag.valor;
           const plano = planosMapUpdate[pag.codplano_pagamento];
           if (plano && plano.tem_acrescimo) {
-            let taxa = Number(plano.taxa_acrescimo || 0);
-            if (plano.regras_parcelamento) {
-              try {
-                const regras = JSON.parse(plano.regras_parcelamento);
-                const regra = regras.find(r => Number(r.parcelas) === Number(pag.parcelas || 1));
-                if (regra) taxa = Number(regra.acrescimo_percentual || 0);
-              } catch(e) {}
-            }
-            if (taxa > 0) {
-              const valorSemAcrescimo = pag.valor / (1 + (taxa / 100));
-              const acrescimoDestePagamento = pag.valor - valorSemAcrescimo;
-              acrescimoTotalGeralUpdate += acrescimoDestePagamento;
-              pag.acrescimo_percentual = taxa;
-              pag.valor_acrescimo = Number(acrescimoDestePagamento.toFixed(2));
+            if (modoCobrancaCartao === 'PERCENTUAL') {
+              let taxa = Number(plano.taxa_acrescimo || 0);
+              if (plano.regras_parcelamento) {
+                try {
+                  const regras = JSON.parse(plano.regras_parcelamento);
+                  const regra = regras.find(r => Number(r.parcelas) === Number(pag.parcelas || 1));
+                  if (regra) taxa = Number(regra.acrescimo_percentual || 0);
+                } catch(e) {}
+              }
+              if (taxa > 0) {
+                const valorSemAcrescimo = pag.valor / (1 + (taxa / 100));
+                const acrescimoDestePagamento = pag.valor - valorSemAcrescimo;
+                acrescimoTotalGeralUpdate += acrescimoDestePagamento;
+                pag.acrescimo_percentual = taxa;
+                pag.valor_acrescimo = Number(acrescimoDestePagamento.toFixed(2));
+              }
+            } else {
+              pag.valor_acrescimo = Number((pag.snapshot_acrescimo_aplicado || 0).toFixed(2));
             }
           }
         }
