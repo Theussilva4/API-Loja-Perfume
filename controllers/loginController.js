@@ -2,6 +2,10 @@ import prisma from "../prismaClient.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error("JWT_SECRET não configurado no .env");
+}
 export async function login(req, res) {
   const { login, password } = req.body;
 
@@ -28,7 +32,7 @@ export async function login(req, res) {
       tipo: usuario.tipo_usuario,
       codvendedor: usuario.codvendedor
     },
-    "SEGREDO",
+    JWT_SECRET,
     { expiresIn: "1d" }
   );
 
@@ -36,7 +40,7 @@ export async function login(req, res) {
     token,
     usuario: {
       id: usuario.codusur,
-      nome: usuario.nome,          // â ï¸ CONFERE esse campo no banco
+      nome: usuario.nome,          // âš ï¸  CONFERE esse campo no banco
       email: usuario.email,
       tipo: usuario.tipo_usuario,
       codvendedor: usuario.codvendedor,

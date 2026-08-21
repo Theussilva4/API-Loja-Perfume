@@ -28,14 +28,15 @@ import contasReceberRoutes from "./routes/contasReceber.js"
 import { sendTelegramAlert } from "./utils/telegram.js"
 import { auth } from "./middlewares/authMiddleware.js"
 
+import helmet from "helmet";
+
 const app = express()
 
+app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }))
 app.use(cors({
-  origin: [
-    "http://localhost:8081",
-    "http://localhost:5173",
-    "https://deassisdev-site-matheus.bwb8as.easypanel.host"
-  ],
+  origin: function (origin, callback) {
+    callback(null, true);
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"]
 }))
@@ -114,11 +115,17 @@ app.use((req, res, next) => {
 
   res.json = function (body) {
     handleIntercept(body);
+    if (res.statusCode >= 500 && (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'producao')) {
+      return originalJson.call(this, { erro: "Ocorreu um erro interno no servidor." });
+    }
     return originalJson.apply(this, arguments);
   };
   
   res.send = function (body) {
     handleIntercept(body);
+    if (res.statusCode >= 500 && (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'producao')) {
+      return originalSend.call(this, "Ocorreu um erro interno no servidor.");
+    }
     return originalSend.apply(this, arguments);
   };
 
@@ -153,6 +160,19 @@ app.get("/api/teste-erro", (req, res) => {
     erro: "Este Ã© um erro de teste disparado propositalmente para validar a integraÃ§Ã£o com o Telegram.",
     details: "Se vocÃª recebeu isso no seu Telegram, a integraÃ§Ã£o estÃ¡ funcionando perfeitamente ð"
   });
+});
+
+// Fallback para rotas /api inexistentes (evita retornar o HTML do frontend)
+app.use("/api", (req, res) => {
+  res.status(404).json({ erro: "Rota da API não encontrada." });
+});
+
+// Tratamento de erros globais da /api (evita retornar HTML de stack trace do Express)
+app.use("/api", (err, req, res, next) => {
+  console.error("ERRO GLOBAL NA API:", err);
+  if (!res.headersSent) {
+    res.status(500).json({ erro: err.message || "Ocorreu um erro interno no servidor." });
+  }
 });
 
 // Servir o frontend buildado

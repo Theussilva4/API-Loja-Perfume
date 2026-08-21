@@ -1,5 +1,10 @@
 import jwt from "jsonwebtoken";
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error("JWT_SECRET não configurado no .env");
+}
+
 export function auth(req, res, next) {
   let token = req.headers.authorization;
 
@@ -12,7 +17,7 @@ export function auth(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, "SEGREDO");
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.usuario = decoded;
     next();
   } catch {

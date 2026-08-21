@@ -1,5 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
+import { PrismaClient, Prisma } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const getDashboardMetrics = async (req, res) => {
@@ -190,26 +189,25 @@ export const getDashboardMetrics = async (req, res) => {
     // ==========================================
     // Para simplificar no Prisma sem QueryRaw complexas com JOIN, 
     // buscamos a data da ultima venda de cada produto que tem estoque
-    const filialQuery = codfilial ? `AND e.codfilial = ${Number(codfilial)}` : '';
-    const filialQueryPed = codfilial ? `AND ped.codfilial = ${Number(codfilial)}` : '';
+    const filialQuery = codfilial ? Prisma.sql`AND e.codfilial = ${Number(codfilial)}` : Prisma.empty;
+    const filialQueryPed = codfilial ? Prisma.sql`AND ped.codfilial = ${Number(codfilial)}` : Prisma.empty;
 
-    const estoqueDisponivel = await prisma.$queryRawUnsafe(`
+    const estoqueDisponivel = await prisma.$queryRaw`
       SELECT p.codproduto, p.descricao, p.estoque_minimo, COALESCE(SUM(e.quantidade), 0) as saldo
       FROM msproduto p
       LEFT JOIN msestoque e ON p.codproduto = e.codproduto ${filialQuery}
       WHERE p.ativo = 'S'
       GROUP BY p.codproduto
       HAVING saldo > 0
-    `);
+    `;
 
     // Busca a ultima venda de produtos com estoque
     const ultimasVendasProd = await prisma.mspedido_item.groupBy({
       by: ['codproduto'],
-      _max: { 'mspedido': { data_pedido: true } } // Isso nÃ£o funciona direto no prisma groupBy se nao for aggregate.
+      _max: { 'mspedido': { data_pedido: true } } // Isso não funciona direto no prisma groupBy se nao for aggregate.
     }).catch(() => []); 
     
-    // Vamos usar queryRawUnsafe para facilitar o Sem Giro
-    const semGiroList = await prisma.$queryRawUnsafe(`
+    const semGiroList = await prisma.$queryRaw`
       SELECT p.codproduto, p.descricao, MAX(ped.data_pedido) as ultima_venda, COALESCE(SUM(e.quantidade), 0) as saldo
       FROM msproduto p
       LEFT JOIN msestoque e ON p.codproduto = e.codproduto ${filialQuery}
@@ -218,7 +216,7 @@ export const getDashboardMetrics = async (req, res) => {
       WHERE p.ativo = 'S'
       GROUP BY p.codproduto
       HAVING saldo > 0
-    `);
+    `;
 
     const produtosSemGiro = {
       "30d": [],
@@ -247,7 +245,7 @@ export const getDashboardMetrics = async (req, res) => {
     // ==========================================
     // 6. ESTOQUE BAIXO
     // ==========================================
-    const estoqueBaixoList = await prisma.$queryRawUnsafe(`
+    const estoqueBaixoList = await prisma.$queryRaw`
       SELECT p.codproduto, p.descricao, p.estoque_minimo, COALESCE(SUM(e.quantidade), 0) as saldo
       FROM msproduto p
       LEFT JOIN msestoque e ON p.codproduto = e.codproduto ${filialQuery}
@@ -255,7 +253,7 @@ export const getDashboardMetrics = async (req, res) => {
       GROUP BY p.codproduto
       HAVING saldo <= p.estoque_minimo
       LIMIT 10
-    `);
+    `;
 
     // ==========================================
     // 7. ÃLTIMOS PEDIDOS

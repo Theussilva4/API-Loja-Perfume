@@ -216,19 +216,69 @@ export async function criarPedido(req, res) {
 
       let subtotalGlobal = 0;
       
-      // 1. Processar os Avulsos (Produtos Normais)
-      const avulsosProcessados = listaProdutos.map(p => {
+      // Pré-carregar planos para ver se tem cartão envolvido
+      const basePlanos = await tx.mSPLANOPAGAMENTO.findMany();
+      let temCartao = false;
+      if (pagamentos && pagamentos.length > 0) {
+        for (const pag of pagamentos) {
+          const plano = basePlanos.find(p => p.CODPLPAG === Number(pag.codplano_pagamento));
+          if (plano && (plano.tipo_pagamento?.includes('CARTAO') || plano.DESCRICAO?.toUpperCase().includes('CART') || plano.tem_acrescimo)) {
+            temCartao = true;
+          }
+        }
+      } else if (formaPagamento) {
+        const plano = basePlanos.find(p => p.CODPLPAG === Number(formaPagamento));
+        if (plano && (plano.tipo_pagamento?.includes('CARTAO') || plano.DESCRICAO?.toUpperCase().includes('CART') || plano.tem_acrescimo)) {
+          temCartao = true;
+        }
+      }
+
+      // 1. Processar os Avulsos (Produtos Normais) com Validação de Preço
+      const avulsosProcessados = [];
+      let subtotalCartaoEsperado = 0;
+      for (const p of listaProdutos) {
+        const cod = Number(p.codproduto || p.produtoId);
         const qtd = Number(p.quantidade);
-        const preco = Number(p.preco_unitario);
-        subtotalGlobal += (qtd * preco);
-        return {
-          codproduto: Number(p.codproduto || p.produtoId),
+        const precoFront = Number(p.preco_unitario);
+
+        const tabelaPreco = await tx.mstabela_preco.findFirst({
+          where: { codproduto: cod, ativo: 'S' }
+        });
+
+        if (!tabelaPreco) {
+          throw new Error(`Produto código ${cod} não possui preço ativo na tabela.`);
+        }
+
+        const precoReal = Number(tabelaPreco.preco_venda);
+        const precoCartao = Number(tabelaPreco.preco_cartao);
+        
+        if (temCartao && modoCobrancaCartao === 'PRECO_FIXO' && precoCartao > 0) {
+          subtotalCartaoEsperado += (qtd * precoCartao);
+        } else {
+          subtotalCartaoEsperado += (qtd * precoFront);
+        }
+
+        const maxDesconto = Number(tabelaPreco.desconto_maximo || 0);
+
+        if (precoFront < precoReal) {
+          const percDesconto = ((precoReal - precoFront) / precoReal) * 100;
+          if (percDesconto > maxDesconto) {
+            const config = await tx.msconfiguracao_empresa.findFirst();
+            if (!config?.permite_desconto_acima_limite) {
+              throw new Error(`O desconto aplicado ao produto ${cod} (${percDesconto.toFixed(2)}%) excede o limite permitido (${maxDesconto}%).`);
+            }
+          }
+        }
+
+        subtotalGlobal += (qtd * precoFront);
+        avulsosProcessados.push({
+          codproduto: cod,
           quantidade: qtd,
-          preco_unitario: preco,
-          valor_total: qtd * preco,
+          preco_unitario: precoFront,
+          valor_total: qtd * precoFront,
           pedido_kit_id: null // avulso
-        };
-      });
+        });
+      }
 
       // 2. Processar os Kits
       const kitsProcessados = [];
@@ -244,7 +294,14 @@ export async function criarPedido(req, res) {
 
         const qtdKitVendido = Number(k.quantidade);
         const precoKitUnitario = Number(kitDB.preco_kit);
+        const precoKitCartao = Number(kitDB.preco_kit_cartao);
         const valorKitTotal = precoKitUnitario * qtdKitVendido;
+
+        if (temCartao && modoCobrancaCartao === 'PRECO_FIXO' && precoKitCartao > 0) {
+          subtotalCartaoEsperado += (qtdKitVendido * precoKitCartao);
+        } else {
+          subtotalCartaoEsperado += valorKitTotal;
+        }
 
         let somaPrecosOriginais = 0;
         kitDB.itens.forEach(ki => {
@@ -302,11 +359,20 @@ export async function criarPedido(req, res) {
               }
             } else {
               pag.valor_acrescimo = Number((pag.snapshot_acrescimo_aplicado || 0).toFixed(2));
+              acrescimoTotalGeral += pag.valor_acrescimo;
             }
           }
         }
         somaPagamentos = Number(somaPagamentos.toFixed(2));
         acrescimoTotalGeral = Number(acrescimoTotalGeral.toFixed(2));
+
+        if (temCartao && modoCobrancaCartao === 'PRECO_FIXO') {
+          const acrescimoNecessario = Number((subtotalCartaoEsperado - subtotalGlobal).toFixed(2));
+          if (acrescimoNecessario > 0 && acrescimoTotalGeral < acrescimoNecessario) {
+            throw new Error(`A venda no cartão exige o acréscimo de Preço Fixo (R$ ${acrescimoNecessario}). Valor informado: R$ ${acrescimoTotalGeral}.`);
+          }
+        }
+
         valor_total_venda = Number((valor_total_venda + acrescimoTotalGeral).toFixed(2));
 
         if (Math.abs(somaPagamentos - valor_total_venda) > 0.05 && (finalStatus === "FINALIZADO" || finalStatus === "FINALIZADA")) {
@@ -681,19 +747,72 @@ export async function atualizarPedido(req, res) {
 
       let subtotalGlobal = 0;
       
-      const avulsosProcessados = listaProdutos.map(p => {
+      const config = await tx.msconfiguracao_empresa.findFirst();
+      const modoCobrancaCartao = config?.modo_cobranca_cartao || 'PERCENTUAL';
+
+      // Pré-carregar planos para ver se tem cartão envolvido
+      const basePlanos = await tx.mSPLANOPAGAMENTO.findMany();
+      let temCartao = false;
+      if (pagamentos && pagamentos.length > 0) {
+        for (const pag of pagamentos) {
+          const plano = basePlanos.find(p => p.CODPLPAG === Number(pag.codplano_pagamento));
+          if (plano && (plano.tipo_pagamento?.includes('CARTAO') || plano.DESCRICAO?.toUpperCase().includes('CART') || plano.tem_acrescimo)) {
+            temCartao = true;
+          }
+        }
+      } else if (formaPagamento) {
+        const plano = basePlanos.find(p => p.CODPLPAG === Number(formaPagamento));
+        if (plano && (plano.tipo_pagamento?.includes('CARTAO') || plano.DESCRICAO?.toUpperCase().includes('CART') || plano.tem_acrescimo)) {
+          temCartao = true;
+        }
+      }
+
+      const avulsosProcessados = [];
+      let subtotalCartaoEsperado = 0;
+      for (const p of listaProdutos) {
+        const cod = Number(p.codproduto || p.produtoId);
         const qtd = Number(p.quantidade);
-        const preco = Number(p.preco_unitario);
-        subtotalGlobal += (qtd * preco);
-        return {
+        const precoFront = Number(p.preco_unitario);
+
+        const tabelaPreco = await tx.mstabela_preco.findFirst({
+          where: { codproduto: cod, ativo: 'S' }
+        });
+
+        if (!tabelaPreco) {
+          throw new Error(`Produto código ${cod} não possui preço ativo na tabela.`);
+        }
+
+        const precoReal = Number(tabelaPreco.preco_venda);
+        const precoCartao = Number(tabelaPreco.preco_cartao);
+        
+        if (temCartao && modoCobrancaCartao === 'PRECO_FIXO' && precoCartao > 0) {
+          subtotalCartaoEsperado += (qtd * precoCartao);
+        } else {
+          subtotalCartaoEsperado += (qtd * precoFront);
+        }
+
+        const maxDesconto = Number(tabelaPreco.desconto_maximo || 0);
+
+        if (precoFront < precoReal) {
+          const percDesconto = ((precoReal - precoFront) / precoReal) * 100;
+          if (percDesconto > maxDesconto) {
+            const config = await tx.msconfiguracao_empresa.findFirst();
+            if (!config?.permite_desconto_acima_limite) {
+              throw new Error(`O desconto aplicado ao produto ${cod} (${percDesconto.toFixed(2)}%) excede o limite permitido (${maxDesconto}%).`);
+            }
+          }
+        }
+
+        subtotalGlobal += (qtd * precoFront);
+        avulsosProcessados.push({
           numpedido: Number(id),
-          codproduto: Number(p.codproduto || p.produtoId),
+          codproduto: cod,
           quantidade: qtd,
-          preco_unitario: preco,
-          valor_total: qtd * preco,
+          preco_unitario: precoFront,
+          valor_total: qtd * precoFront,
           pedido_kit_id: null
-        };
-      });
+        });
+      }
 
       const itensDeKits = [];
       for (const k of kits) {
@@ -706,7 +825,14 @@ export async function atualizarPedido(req, res) {
 
         const qtdKitVendido = Number(k.quantidade);
         const precoKitUnitario = Number(kitDB.preco_kit);
+        const precoKitCartao = Number(kitDB.preco_kit_cartao);
         const valorKitTotal = precoKitUnitario * qtdKitVendido;
+
+        if (temCartao && modoCobrancaCartao === 'PRECO_FIXO' && precoKitCartao > 0) {
+          subtotalCartaoEsperado += (qtdKitVendido * precoKitCartao);
+        } else {
+          subtotalCartaoEsperado += valorKitTotal;
+        }
 
         let somaPrecosOriginais = 0;
         kitDB.itens.forEach(ki => {
@@ -792,11 +918,20 @@ export async function atualizarPedido(req, res) {
               }
             } else {
               pag.valor_acrescimo = Number((pag.snapshot_acrescimo_aplicado || 0).toFixed(2));
+              acrescimoTotalGeralUpdate += pag.valor_acrescimo;
             }
           }
         }
         somaPagamentosUpdate = Number(somaPagamentosUpdate.toFixed(2));
         acrescimoTotalGeralUpdate = Number(acrescimoTotalGeralUpdate.toFixed(2));
+
+        if (temCartao && modoCobrancaCartao === 'PRECO_FIXO') {
+          const acrescimoNecessario = Number((subtotalCartaoEsperado - subtotalGlobal).toFixed(2));
+          if (acrescimoNecessario > 0 && acrescimoTotalGeralUpdate < acrescimoNecessario) {
+            throw new Error(`A atualização para pagamento em cartão exige o acréscimo de Preço Fixo (R$ ${acrescimoNecessario}). Valor informado: R$ ${acrescimoTotalGeralUpdate}.`);
+          }
+        }
+
         valor_total_venda = Number((valor_total_venda + acrescimoTotalGeralUpdate).toFixed(2));
 
         if (Math.abs(somaPagamentosUpdate - valor_total_venda) > 0.05 && (status === "FINALIZADO" || status === "FINALIZADA")) {
