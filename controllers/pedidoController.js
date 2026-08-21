@@ -591,6 +591,17 @@ export async function alterarStatus(req, res) {
         return res.status(400).json({ error: "O motivo do cancelamento deve ter pelo menos 15 caracteres." });
       }
 
+      const contasPagas = await prisma.mscontas_receber.findFirst({
+        where: { 
+          numpedido: pedidoAnterior.numpedido, 
+          status: { in: ['PARCIAL', 'PAGO'] }
+        }
+      });
+
+      if (contasPagas) {
+        return res.status(400).json({ error: "Não é possível cancelar este pedido, pois já existem pagamentos parciais ou totais nas contas a receber vinculadas." });
+      }
+
       await prisma.$transaction(async (tx) => {
         if (pedidoAnterior.status === "FINALIZADO") {
           await estornarEstoqueFefo(tx, pedidoAnterior.numpedido, pedidoAnterior);
