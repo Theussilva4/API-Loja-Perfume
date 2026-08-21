@@ -155,13 +155,14 @@ export async function listarPedidos(req, res) {
       include: {
         mscliente: { select: { nome: true, telefone: true } },
         msusuario_mspedido_codusur_vendedorTomsusuario: { select: { nome: true } },
+        msusuario_mspedido_codusur_criouTomsusuario: { select: { nome: true } },
         mspedido_item: {
           include: {
             msproduto: { select: { descricao: true } }
           }
         },
         msusuario_mspedido_codusur_cancelouTomsusuario: { select: { nome: true } }
-      }
+      },
     });
     res.json(pedidos);
   } catch (error) {
@@ -619,6 +620,12 @@ export async function alterarStatus(req, res) {
             });
           }
         }
+        
+        // Cancela todas as contas a receber pendentes geradas por esse pedido
+        await tx.mscontas_receber.updateMany({
+          where: { numpedido: pedidoAnterior.numpedido, status: 'PENDENTE' },
+          data: { status: 'CANCELADO' }
+        });
 
         await tx.mspedido.update({
           where: { numpedido: Number(id) },
@@ -657,6 +664,11 @@ export async function alterarStatus(req, res) {
         }
 
         // Registrar o movimento de caixa e pagamento
+        const plano = await tx.mSPLANOPAGAMENTO.findUnique({
+          where: { CODPLPAG: Number(pedidoAnterior.CODPLPAG || 1) }
+        });
+        const isCrediario = plano && plano.tipo_pagamento === 'CREDIARIO';
+
         await tx.mspedido_pagamento.create({
           data: {
             numpedido: pedidoAnterior.numpedido,
@@ -664,18 +676,34 @@ export async function alterarStatus(req, res) {
             valor: pedidoAnterior.valor_total
           }
         });
-        await tx.mscaixa_movimento.create({
-          data: {
-            codsessao: sessaoCaixa.codsessao,
-            codusur: usrId ? Number(usrId) : 0,
-            tipo: 'ENTRADA',
-            categoria: 'VENDA',
-            valor: pedidoAnterior.valor_total,
-            codplano_pagamento: Number(pedidoAnterior.CODPLPAG || 1),
-            numpedido: pedidoAnterior.numpedido,
-            observacao: `Venda ${pedidoAnterior.codigo_venda}`
-          }
-        });
+
+        if (isCrediario) {
+          await tx.mscontas_receber.create({
+            data: {
+              codcliente: pedidoAnterior.codcliente,
+              codfilial: pedidoAnterior.codfilial || 1,
+              numpedido: pedidoAnterior.numpedido,
+              valor_total: pedidoAnterior.valor_total,
+              data_emissao: new Date(),
+              data_vencimento: getVencimentoPadrao(),
+              status: "PENDENTE",
+              observacoes: `Venda ${pedidoAnterior.codigo_venda}`
+            }
+          });
+        } else {
+          await tx.mscaixa_movimento.create({
+            data: {
+              codsessao: sessaoCaixa.codsessao,
+              codusur: usrId ? Number(usrId) : 0,
+              tipo: 'ENTRADA',
+              categoria: 'VENDA',
+              valor: pedidoAnterior.valor_total,
+              codplano_pagamento: Number(pedidoAnterior.CODPLPAG || 1),
+              numpedido: pedidoAnterior.numpedido,
+              observacao: `Venda ${pedidoAnterior.codigo_venda}`
+            }
+          });
+        }
       });
       return res.json({ mensagem: "Status alterado, estoque baixado e movimentaÃ§Ã£o registrada no caixa." });
     }
