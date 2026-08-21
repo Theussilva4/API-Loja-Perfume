@@ -63,10 +63,10 @@ export async function listarKits(req, res) {
 // Criar um novo Kit
 export async function criarKit(req, res) {
   try {
-    const { nome, descricao, preco_kit, data_inicio, data_fim, ativo, itens, created_by } = req.body;
+    const { nome, descricao, preco_kit, preco_kit_cartao, data_inicio, data_fim, ativo, itens, created_by } = req.body;
 
     if (!nome || !preco_kit || !itens || itens.length === 0) {
-      return res.status(400).json({ error: "Nome, preÃ§o e itens sÃ£o obrigatÃ³rios." });
+      return res.status(400).json({ error: "Nome, preço do kit e itens são obrigatórios." });
     }
 
     const kit = await prisma.mskit.create({
@@ -74,6 +74,7 @@ export async function criarKit(req, res) {
         nome,
         descricao,
         preco_kit: Number(preco_kit),
+        preco_kit_cartao: preco_kit_cartao ? Number(preco_kit_cartao) : 0,
         data_inicio: data_inicio ? new Date(data_inicio) : null,
         data_fim: data_fim ? new Date(data_fim) : null,
         ativo: ativo || "S",
@@ -101,7 +102,7 @@ export async function criarKit(req, res) {
 export async function atualizarKit(req, res) {
   try {
     const { id } = req.params;
-    const { nome, descricao, preco_kit, data_inicio, data_fim, ativo, itens, updated_by } = req.body;
+    const { nome, descricao, preco_kit, preco_kit_cartao, data_inicio, data_fim, ativo, itens, updated_by } = req.body;
 
     // Verificar se kit existe
     const kitAtual = await prisma.mskit.findUnique({
@@ -128,6 +129,7 @@ export async function atualizarKit(req, res) {
           nome,
           descricao,
           preco_kit: Number(preco_kit),
+          preco_kit_cartao: preco_kit_cartao ? Number(preco_kit_cartao) : 0,
           data_inicio: data_inicio ? new Date(data_inicio) : null,
           data_fim: data_fim ? new Date(data_fim) : null,
           ativo: ativo || "S",
