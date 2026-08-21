@@ -124,7 +124,8 @@ app.use((req, res, next) => {
   res.send = function (body) {
     handleIntercept(body);
     if (res.statusCode >= 500 && (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'producao')) {
-      return originalSend.call(this, "Ocorreu um erro interno no servidor.");
+      this.type('json');
+      return originalSend.call(this, JSON.stringify({ erro: "Ocorreu um erro interno no servidor." }));
     }
     return originalSend.apply(this, arguments);
   };
