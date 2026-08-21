@@ -31,6 +31,7 @@ import { auth } from "./middlewares/authMiddleware.js"
 import helmet from "helmet";
 
 const app = express()
+app.set('trust proxy', 1) // Confia no proxy reverso para identificar o IP corretamente (Evita o erro ERR_ERL_UNEXPECTED_X_FORWARDED_FOR)
 
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }))
 app.use(cors({
